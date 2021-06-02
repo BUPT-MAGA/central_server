@@ -17,7 +17,7 @@ class Admin(NamedTuple):
         pass
 
     @staticmethod
-    def auth(username: str, password: str) -> bool:
+    def auth(username: str, password: str) -> 'Admin':
         pass
 
     @staticmethod
