@@ -55,16 +55,16 @@ def add_center_routes(app: FastAPI):
             # login_user()
 
     @app.get('/air/switch')
-    async def switch_air(action: int = 0):
+    async def switch_air(action: int = 0, token: str = Depends(oauth2_scheme)):
         # TODO handle switch
         return 'switch successfully'
 
     @app.get('/air/mode')
-    async def set_mode(mode: int = 0):
+    async def set_mode(mode: int = 0, token: str = Depends(oauth2_scheme)):
         # TODO handle setting mode
         return 'set mode successfully'
 
     @app.get('/air/statistic')
-    async def get_statistic(roomId: str = '', scale: int = 0):
+    async def get_statistic(roomId: str = '', scale: int = 0, token: str = Depends(oauth2_scheme)):
         # TODO handle getting statistic
         return json.dumps(dict())
