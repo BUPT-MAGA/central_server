@@ -1,41 +1,40 @@
-from flask import Blueprint, Flask, request
-from flask_login import login_user
+from fastapi import FastAPI
 import json
 
-def add_center_routes(app: Flask):
-    @app.route('/manager/login', methods=['POST'])
-    def login():
-        if 'username' in request.form and 'password' in request.form:
-            username = request.form['username']
-            password = request.form['password']
-            # TODO
-            # https://github.com/PrettyPrinted/flask_auth_scotch/blob/master/project/auth.py
+def add_center_routes(app: FastAPI):
+    @app.get('/')
+    async def hello():
+        return 'hello'
+
+    # @app.post('/manager/login', methods=['POST'])
+    # def login():
+    #     if 'username' in request.form and 'password' in request.form:
+    #         username = request.form['username']
+    #         password = request.form['password']
+    #         TODO
+    #         https://github.com/PrettyPrinted/flask_auth_scotch/blob/master/project/auth.py
+    #         login_user()
+    #
+    # @app.route('/manager/register', methods=['POST'])
+    # def register():
+    #     if 'username' in request.form and 'password' in request.form:
+    #         username = request.form['username']
+    #         password = request.form['password']
+    #         TODO
+    #         https://github.com/PrettyPrinted/flask_auth_scotch/blob/master/project/auth.py
             # login_user()
 
-    @app.route('/manager/register', methods=['POST'])
-    def register():
-        if 'username' in request.form and 'password' in request.form:
-            username = request.form['username']
-            password = request.form['password']
-            # TODO
-            # https://github.com/PrettyPrinted/flask_auth_scotch/blob/master/project/auth.py
-            # login_user()
-
-    @app.route('/air/switch', methods=['GET'])
-    def switch_air():
-        action = int(request.args.get('action', 0))
+    @app.get('/air/switch')
+    async def switch_air(action: int = 0):
         # TODO handle switch
         return 'switch successfully'
 
-    @app.route('/air/mode', methods=['GET'])
-    def set_mode():
-        mode = int(request.args.get('mode', 0))
+    @app.get('/air/mode')
+    async def set_mode(mode: int = 0):
         # TODO handle setting mode
         return 'set mode successfully'
 
-    @app.route('/air/statistic', methods=['GET'])
-    def get_statistic():
-        roomId = request.args.get('roomId', '')
-        scale = request.args.get('scale', 0)
+    @app.get('/air/statistic')
+    async def get_statistic(roomId: str = '', scale: int = 0):
         # TODO handle getting statistic
         return json.dumps(dict())

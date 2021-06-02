@@ -1,7 +1,4 @@
-from flask import Flask
-from flask_socketio import SocketIO
+from fastapi import FastAPI
 from central_server import create_app
 
-if __name__ == '__main__':
-    app, socketio = create_app()
-    socketio.run(app)
+app: FastAPI = create_app()
