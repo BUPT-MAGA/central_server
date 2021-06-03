@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
+from .body import *
 from central_server.models.admin import Admin
 
 def add_center_routes(app: FastAPI):
@@ -35,24 +36,24 @@ def add_center_routes(app: FastAPI):
         return {"access_token": access_token, "token_type": "bearer"}
 
 
+    @app.post('/manager/register')
+    async def register(admin_req: AdminReq):
+        username = admin_req.username
+        password = admin_req.password
+        check = Admin.check(username)
+        if not check:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Duplicate username",
+            )
+        user: Admin = Admin.register(username, password)
+        return user._as_dict()
 
-    # @app.post('/manager/login', methods=['POST'])
-    # def login():
-    #     if 'username' in request.form and 'password' in request.form:
-    #         username = request.form['username']
-    #         password = request.form['password']
-    #         TODO
-    #         https://github.com/PrettyPrinted/flask_auth_scotch/blob/master/project/auth.py
-    #         login_user()
-    #
-    # @app.route('/manager/register', methods=['POST'])
-    # def register():
-    #     if 'username' in request.form and 'password' in request.form:
-    #         username = request.form['username']
-    #         password = request.form['password']
-    #         TODO
-    #         https://github.com/PrettyPrinted/flask_auth_scotch/blob/master/project/auth.py
-            # login_user()
+    @app.post('/air/checkin')
+    async def check_in(checkin_req: CheckInReq):
+        room_id = checkin_req.room_id
+        user_id = checkin_req.user_id
+        # TODO
 
     @app.get('/air/switch')
     async def switch_air(action: int = 0, token: str = Depends(oauth2_scheme)):

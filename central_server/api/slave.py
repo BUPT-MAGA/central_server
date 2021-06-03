@@ -30,12 +30,12 @@ def add_slave_routes(app: FastAPI):
     async def hello(data: dict):
         pass
 
-    HANDLE_LIST = [
-        hello
-    ]
+    HANDLE_DICT = {
+        0: hello,
+    }
 
     async def distribute(message: dict):
-        await HANDLE_LIST[message['event_id']](message['data'])
+        await HANDLE_DICT[message['event_id']](message['data'])
 
     manager = ConnectionManager()
     @app.websocket('/')
