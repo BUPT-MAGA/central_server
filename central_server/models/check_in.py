@@ -1,11 +1,14 @@
 from enum import Enum
 from typing import NamedTuple, Optional, Any
+from pydantic import BaseModel
+
 
 class CheckInStatus(Enum):
     CheckIn = 1
     CheckOut = 2
 
-class CheckIn(NamedTuple):
+
+class CheckIn(BaseModel):
     # Check in record id
     id: int
     # User ID (ID card number)

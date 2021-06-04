@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import NamedTuple
+from pydantic import BaseModel
 
 
 class WindMode(Enum):
@@ -13,7 +14,7 @@ class WindSpeed(Enum):
     High = 3
 
 
-class Room(NamedTuple):
+class Room(BaseModel):
     # Room ID
     id: str
     wind_mode: WindMode

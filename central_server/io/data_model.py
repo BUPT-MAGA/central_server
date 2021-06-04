@@ -21,7 +21,7 @@ class DataModel(object):
         self.constructor = constructor
 
     def insert(self, data: NamedTuple):
-        self.table.insert(data._asdict())
+        self.table.insert(data.dict())
 
     def get(self, pid):
         res = self.table.search(Data[self.primary_key] == pid)

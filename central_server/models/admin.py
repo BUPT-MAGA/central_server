@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import NamedTuple
+from pydantic import BaseModel
 
 
 class AdminStatus(Enum):
@@ -7,7 +8,7 @@ class AdminStatus(Enum):
     On = 2
 
 
-class Admin(NamedTuple):
+class Admin(BaseModel):
     username: str
     password: str
     status: AdminStatus

@@ -1,13 +1,16 @@
 from typing import NamedTuple, Optional
 from enum import Enum
 from .room import WindSpeed
+from pydantic import BaseModel
+
 
 class EventType(Enum):
     TEMP = 1
     START = 2
     END = 3
 
-class TempLog(NamedTuple):
+
+class TempLog(BaseModel):
     checkin_id: int
     wind_speed: Optional[WindSpeed]
     timestamp: str
