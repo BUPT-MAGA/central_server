@@ -19,6 +19,7 @@ class DataModel(object):
         self.table = self.db.table(self.data_name)
         self.primary_key = primary_key
         self.constructor = constructor
+        self.item = Query()
 
     def insert(self, data: NamedTuple):
         self.table.insert(data.dict())
@@ -30,6 +31,10 @@ class DataModel(object):
         else:
             res = res[0]
             return self.constructor(**res)
+
+    def where(self, query):
+        res = self.table.search(query)
+        return [self.constructor(**x) for x in res]
 
     def update(self, pid, field_name: str, value):
         self.table.update({field_name: value}, Data[self.primary_key] == pid)
