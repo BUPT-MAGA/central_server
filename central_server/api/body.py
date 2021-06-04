@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-class CheckInReq(BaseModel):
+class CheckReq(BaseModel):
     room_id: str
     user_id: str
 

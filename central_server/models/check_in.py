@@ -26,3 +26,12 @@ class CheckIn(NamedTuple):
     @staticmethod
     def create(user_id: str, room_id: str, now: str) -> 'CheckIn':
         pass
+
+    @staticmethod
+    def update(user_id: str, room_id: str, now: str) -> 'CheckIn':
+        # check out
+        pass
+
+    @staticmethod
+    def check(user_id: str, room_id: str, status: CheckInStatus) -> bool:
+        pass

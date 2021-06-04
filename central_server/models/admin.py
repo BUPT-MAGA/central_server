@@ -23,3 +23,7 @@ class Admin(NamedTuple):
     @staticmethod
     def register(username: str, password: str) -> 'Admin':
         pass
+
+    @staticmethod
+    def check(username: str) -> bool:
+        pass

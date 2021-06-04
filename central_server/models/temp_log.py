@@ -12,6 +12,8 @@ class TempLog(NamedTuple):
     wind_speed: Optional[WindSpeed]
     timestamp: str
     event_type: EventType
+    initial_temp: int
+    current_temp: int
 
     @staticmethod
     def add(checkin_id: int, wind_speed: WindSpeed, timestamp: str) -> 'TempLog':
