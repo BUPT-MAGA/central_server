@@ -17,8 +17,8 @@ class CheckIn(BaseModel):
     room_id: str
     # Check in status (check in or check out)
     status: CheckInStatus
-    checkin_time: str
-    checkout_time: Optional[str]
+    checkin_time: int
+    checkout_time: Optional[int]
     # Current fee
     fee: float
 
