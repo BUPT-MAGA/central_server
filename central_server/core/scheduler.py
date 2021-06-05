@@ -11,7 +11,7 @@ class Scheduler:
         self._wind_mode = wind_mode
         self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
         self._timestamp = 0
-        self.temprature = TEMP_DEFAULT[self._wind_mode]
+        self._temperature = TEMP_DEFAULT[self._wind_mode]
 
     # async def loop(self):
     #     while True:
@@ -20,7 +20,6 @@ class Scheduler:
 
     async def tick(self):
         self._timestamp += 1
-        self.req_queue.tick()
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
             await TempLog.new(wind_speed=room.wind_speed,
@@ -30,10 +29,12 @@ class Scheduler:
             check_in: CheckIn = await CheckIn.get_last(room_id=room.id, status=CheckInStatus.CheckIn)
             assert check_in is not None
             await CheckIn.set.fee(self.update_fee(check_in.fee, room))
+        self.req_queue.tick()
 
-    @staticmethod
-    def update_fee(origin_fee: float, room: Room):
-        return origin_fee + UNIT_PRICE*PRICE_TABLE[room.wind_speed]
+    def update_fee(self, origin_fee: float, room: Room):
+        if self.req_queue.is_serving(room.id):
+            return origin_fee + UNIT_PRICE*PRICE_TABLE[room.wind_speed]
+        return origin_fee
 
     @property
     def timestamp(self):
@@ -46,6 +47,12 @@ class Scheduler:
     @wind_mode.setter
     def wind_mode(self, wind_mode: WindMode):
         if isinstance(wind_mode, WindMode):
-            self._wind_mode = wind_mode
+            if self._wind_mode != wind_mode:
+                self._wind_mode = wind_mode
+                self._temperature = TEMP_DEFAULT[self._wind_mode]
         else:
             raise ValueError('Illegal wind mode value!')
+
+    @property
+    def temperature(self):
+        return self._temperature

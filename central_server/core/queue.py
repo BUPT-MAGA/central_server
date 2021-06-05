@@ -42,6 +42,12 @@ class Queue:
     def is_full_serving(self):
         return len(self.queues[ServiceStatus.Serving]) == self.MAX_SERVING_LEN
 
+    def is_serving(self, room_id: str):
+        for service in self.queues[ServiceStatus.Serving]:
+            if service.room_id == room_id:
+                return True
+        return False
+
     def push(self, service: Service):
         if service.status == ServiceStatus.Serving and self.is_full_serving():
             return False
