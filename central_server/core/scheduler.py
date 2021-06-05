@@ -6,18 +6,16 @@ from .queue import Queue
 
 
 class Scheduler:
-    def __init__(self, wind_mode=WindMode.Snow):
+    def __init__(self):
         # set default mode
-        self._wind_mode = wind_mode
         self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
+
+    def turn_on(self):
+        self._wind_mode = WindMode.Snow
         self._timestamp = 0
         self._temperature = TEMP_DEFAULT[self._wind_mode]
         self._status = CenterStatus.Off
-
-    # async def loop(self):
-    #     while True:
-    #         await asyncio.sleep(REAL_SEC_PER_MIN)
-    #         await self.tick()
+        self.req_queue.clear()
 
     async def tick(self):
         self._timestamp += 1
@@ -74,6 +72,9 @@ class Scheduler:
     @status.setter
     def status(self, status):
         if isinstance(status, CenterStatus):
-            self._status = status
+            if self._status != status:
+                self._status = status
+                if self._status == CenterStatus.On:
+                    self.turn_on()
         else:
             raise ValueError('Illegal center status value!')
