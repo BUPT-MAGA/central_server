@@ -2,22 +2,15 @@ from typing import NamedTuple, Optional
 from enum import Enum
 from .room import WindSpeed
 from pydantic import BaseModel
+from .data_model import DataModel
+from .types import EventType
 
 
-class EventType(Enum):
-    TEMP = 1
-    START = 2
-    END = 3
-
-
+@DataModel(pkey_field='id')
 class TempLog(BaseModel):
-    checkin_id: int
+    id: int
     wind_speed: Optional[WindSpeed]
     timestamp: str
     event_type: EventType
     initial_temp: int
     current_temp: int
-
-    @staticmethod
-    def add(checkin_id: int, wind_speed: WindSpeed, timestamp: str) -> 'TempLog':
-        pass
