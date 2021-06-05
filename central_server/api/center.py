@@ -50,6 +50,11 @@ def add_center_routes(app: FastAPI):
         user: Admin = await Admin.new(username=username, password=password)
         return user.dict()
 
+
+    @app.get('/air/list_checkin')
+    async def list_checkin(token: str = Depends(oauth2_scheme)):
+        return await CheckIn.list_all()
+
     @app.post('/air/checkin')
     async def check_in(checkin_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkin_req.room_id
