@@ -29,7 +29,7 @@ class Scheduler:
                               current_temp=room.current_temp)
             check_in: CheckIn = await CheckIn.get_last(room_id=room.id, status=CheckInStatus.CheckIn)
             assert check_in is not None
-            await CheckIn.update_field('fee', self.update_fee(check_in.fee, room))
+            await CheckIn.set.fee(self.update_fee(check_in.fee, room))
 
     @staticmethod
     def update_fee(origin_fee: float, room: Room):
