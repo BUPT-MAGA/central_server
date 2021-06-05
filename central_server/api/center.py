@@ -94,8 +94,25 @@ def add_center_routes(app: FastAPI):
 
     @app.get('/air/mode')
     async def set_mode(mode: int = 1, token: str = Depends(oauth2_scheme)):
-        MyScheduler.wind_mode = WindMode(mode)
+        try:
+            MyScheduler.wind_mode = WindMode(mode)
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The mode is out of range",
+            )
         return MyScheduler.wind_mode.value
+
+    @app.get('/air/temp')
+    async def set_temp(temp: int = 0, token: str = Depends(oauth2_scheme)):
+        try:
+            MyScheduler.temperature = temp
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The temperature is not correspond to the current wind mode.",
+            )
+        return MyScheduler.temperature
 
     @app.get('/air/statistic')
     async def get_statistic(room_id: str = '', scale: int = 0, token: str = Depends(oauth2_scheme)):

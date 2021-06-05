@@ -56,3 +56,10 @@ class Scheduler:
     @property
     def temperature(self):
         return self._temperature
+
+    @temperature.setter
+    def temperature(self, temp: int):
+        if temp in TEMP_RANGE[self._wind_mode]:
+            self._temperature = temp
+        else:
+            raise ValueError('Illegal temp value!')
