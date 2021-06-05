@@ -90,7 +90,7 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
             data = cls(**kwargs)
             if await cls.get(data.pkey()) is not None:
                 raise RuntimeError(f'Can not create new {cls.__name__} with duplicated primary key {data.pkey()}')
-            await cls._create(data)
+            return await cls._create(data)
 
 
         async def update_field(self: cls, field: str, value):

@@ -22,6 +22,6 @@ class CheckIn(BaseModel):
 
 
     @staticmethod
-    async def check(room_id: str, user_id: str, status: CheckInStatus):
-        res = await CheckIn.get_first(room_id=room_id, user_id=user_id, status=status)
+    async def check(**kwargs):
+        res = await CheckIn.get_first(**kwargs)
         return res
