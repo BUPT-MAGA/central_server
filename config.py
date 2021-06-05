@@ -1,7 +1,9 @@
 import os
-from central_server.models import WindMode
+from central_server.models.types import WindMode
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = 'db.json'
 
 REAL_SEC_PER_MIN = 1
 REQ_EXPIRED_TIME = 30
