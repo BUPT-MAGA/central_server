@@ -75,8 +75,8 @@ def add_center_routes(app: FastAPI):
                 detail="The user has not checked in",
             )
         # FIXME: get current time from Scheduler
-        await check.update_field('checkout_time', 0)
-        await check.update_field('status', CheckInStatus.CheckOut)
+        await check.set.checkout_time(0)
+        await check.set.status(CheckInStatus.CheckOut)
         return check.dict()
 
     @app.get('/air/switch')
