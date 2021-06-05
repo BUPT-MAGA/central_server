@@ -5,7 +5,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from .body import *
-from central_server.models import Admin, CheckIn, CheckInStatus
+from central_server.models import Admin, CheckIn, CheckInStatus, WindMode
+from central_server.core import MyScheduler
 
 def add_center_routes(app: FastAPI):
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/manager/login')
@@ -60,8 +61,10 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The room has checked in",
             )
-        # FIXME: get current time from Scheduler
-        check_in_log: CheckIn = await CheckIn.new(user_id=user_id, room_id=room_id, checkin_time=0)
+        check_in_log: CheckIn = await CheckIn.new(user_id=user_id,
+                                                  room_id=room_id,
+                                                  checkin_time=MyScheduler.timestamp)
+        # TODO: new a room when a slave connection comes
         return check_in_log.dict()
 
     @app.post('/air/checkout')
@@ -74,8 +77,7 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The user has not checked in",
             )
-        # FIXME: get current time from Scheduler
-        await check.update_field('checkout_time', 0)
+        await check.update_field('checkout_time', MyScheduler.timestamp)
         await check.update_field('status', CheckInStatus.CheckOut)
         return check.dict()
 
@@ -85,9 +87,9 @@ def add_center_routes(app: FastAPI):
         return 'switch successfully'
 
     @app.get('/air/mode')
-    async def set_mode(mode: int = 0, token: str = Depends(oauth2_scheme)):
-        # TODO handle setting mode
-        return 'set mode successfully'
+    async def set_mode(mode: int = 1, token: str = Depends(oauth2_scheme)):
+        MyScheduler.wind_mode = WindMode(mode)
+        return MyScheduler.wind_mode.value
 
     @app.get('/air/statistic')
     async def get_statistic(room_id: str = '', scale: int = 0, token: str = Depends(oauth2_scheme)):

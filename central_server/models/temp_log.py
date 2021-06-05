@@ -12,5 +12,4 @@ class TempLog(BaseModel):
     wind_speed: Optional[WindSpeed]
     timestamp: str
     event_type: EventType
-    initial_temp: int
     current_temp: int

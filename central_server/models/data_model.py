@@ -51,6 +51,14 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
                 return res[0]
 
         @staticmethod
+        async def get_last(**kwargs):
+            res = await cls.get_all(**kwargs)
+            if len(res) == 0:
+                return None
+            else:
+                return res[-1]
+
+        @staticmethod
         async def update(field: str, value, q = None):
             async with AIOTinyDB(db_path) as db:
                 db.table(data_name).update({field: value}) if q is None else db.table(data_name).update({field: value})

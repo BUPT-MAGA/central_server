@@ -1,5 +1,5 @@
 import os
-from central_server.models.types import WindMode
+from central_server.models.types import WindMode, WindSpeed
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,3 +21,11 @@ TEMP_DEFAULT = {
     WindMode.Snow: 22,
     WindMode.Sun: 28
 }
+
+PRICE_TABLE = {
+    WindSpeed.Low: 0.8,
+    WindSpeed.Mid: 1.0,
+    WindSpeed.High: 1.2
+}
+
+UNIT_PRICE = 5.0
