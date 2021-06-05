@@ -1,12 +1,14 @@
 from typing import NamedTuple, Callable
 from tinydb import TinyDB, Query
 
+from central_server.utils import all_singletons
+
 from .db_instance import DBInstance
 
 
 class DataModel(object):
     def init_db(db_path: str):
-        db_inst = DBInstance()
+        db_inst = all_singletons.get(DBInstance)
         return db_inst.get_db(db_path)
 
     Data = Query()
