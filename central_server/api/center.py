@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from .body import *
-from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room
+from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus
 from central_server.core import MyScheduler
 
 
@@ -88,9 +88,15 @@ def add_center_routes(app: FastAPI):
         return check.dict()
 
     @app.get('/air/switch')
-    async def switch_air(action: int = 0, token: str = Depends(oauth2_scheme)):
-        # TODO handle switch
-        return 'switch successfully'
+    async def switch_air(action: int = 1, token: str = Depends(oauth2_scheme)):
+        try:
+            MyScheduler.status = CenterStatus(action)
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The action is out of range",
+            )
+        return MyScheduler.status.value
 
     @app.get('/air/mode')
     async def set_mode(mode: int = 1, token: str = Depends(oauth2_scheme)):

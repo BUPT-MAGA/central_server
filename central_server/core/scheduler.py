@@ -1,7 +1,7 @@
 import asyncio
 from time import sleep
 from config import *
-from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn
+from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn, CenterStatus
 from .queue import Queue
 
 
@@ -12,6 +12,7 @@ class Scheduler:
         self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
         self._timestamp = 0
         self._temperature = TEMP_DEFAULT[self._wind_mode]
+        self._status = CenterStatus.Off
 
     # async def loop(self):
     #     while True:
@@ -20,6 +21,8 @@ class Scheduler:
 
     async def tick(self):
         self._timestamp += 1
+        if self._status == CenterStatus.Off:
+            return
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
             await TempLog.new(wind_speed=room.wind_speed,
@@ -63,3 +66,14 @@ class Scheduler:
             self._temperature = temp
         else:
             raise ValueError('Illegal temp value!')
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, status):
+        if isinstance(status, CenterStatus):
+            self._status = status
+        else:
+            raise ValueError('Illegal center status value!')

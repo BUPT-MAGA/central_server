@@ -17,6 +17,11 @@ class AdminStatus(IntEnum):
     On = 2
 
 
+class CenterStatus(IntEnum):
+    Off = 1
+    On = 2
+
+
 class WindMode(IntEnum):
     Snow = 1
     Sun = 2
