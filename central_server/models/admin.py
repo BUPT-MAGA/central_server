@@ -8,4 +8,8 @@ from .types import AdminStatus
 class Admin(BaseModel):
     username: str
     password: str
-    status: AdminStatus
+    status: AdminStatus = AdminStatus.On
+
+    @staticmethod
+    async def check(username: str, password: str):
+        return await Admin.get_first(username=username, password=password)

@@ -40,40 +40,44 @@ def add_center_routes(app: FastAPI):
     async def register(admin_req: AdminReq):
         username = admin_req.username
         password = admin_req.password
-        check = Admin.check(username)
-        if not check:
+        check = await Admin.check(username, password)
+        if check is not None:
+            print(check)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Duplicate username",
             )
-        user: Admin = Admin.register(username, password)
-        return user._as_dict()
+        user: Admin = await Admin.new(username=username, password=password)
+        return user.dict()
 
     @app.post('/air/checkin')
     async def check_in(checkin_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkin_req.room_id
         user_id = checkin_req.user_id
-        check = CheckIn.check(room_id, user_id, CheckInStatus.CheckIn)
-        if not check:
+        check = await CheckIn.check(room_id, user_id, CheckInStatus.CheckIn)
+        if check is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The user has checked in",
             )
-        check_in_log: CheckIn = CheckIn.create(user_id, room_id, '')
-        return check_in_log._as_dict()
+        # FIXME: get current time from Scheduler
+        check_in_log: CheckIn = CheckIn.new(user_id, room_id, 0)
+        return check_in_log.dict()
 
     @app.post('/air/checkout')
     async def check_out(checkout_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkout_req.room_id
         user_id = checkout_req.user_id
         check = CheckIn.check(room_id, user_id, CheckInStatus.CheckOut)
-        if not check:
+        if check is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The user has not checked in",
             )
-        check_out_log: CheckIn = CheckIn.update(user_id, room_id, '')
-        return check_out_log._as_dict()
+        # FIXME: get current time from Scheduler
+        check.update_field('checkout_time', 0)
+        check.update_field('status', CheckInStatus.CheckOut)
+        return check.dict()
 
     @app.get('/air/switch')
     async def switch_air(action: int = 0, token: str = Depends(oauth2_scheme)):
