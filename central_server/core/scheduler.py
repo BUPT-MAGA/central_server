@@ -13,10 +13,10 @@ class Scheduler:
         self._timestamp = 0
         self.temprature = TEMP_DEFAULT[self._wind_mode]
 
-    async def loop(self):
-        while True:
-            await asyncio.sleep(REAL_SEC_PER_MIN)
-            await self.tick()
+    # async def loop(self):
+    #     while True:
+    #         await asyncio.sleep(REAL_SEC_PER_MIN)
+    #         await self.tick()
 
     async def tick(self):
         self._timestamp += 1

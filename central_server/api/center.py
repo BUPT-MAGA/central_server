@@ -5,8 +5,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from .body import *
-from central_server.models import Admin, CheckIn, CheckInStatus, WindMode
+from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room
 from central_server.core import MyScheduler
+
 
 def add_center_routes(app: FastAPI):
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/manager/login')
@@ -36,7 +37,6 @@ def add_center_routes(app: FastAPI):
         )
         return {"access_token": access_token, "token_type": "bearer"}
 
-
     @app.post('/manager/register')
     async def register(admin_req: AdminReq):
         username = admin_req.username
@@ -50,7 +50,6 @@ def add_center_routes(app: FastAPI):
             )
         user: Admin = await Admin.new(username=username, password=password)
         return user.dict()
-
 
     @app.get('/air/list_checkin')
     async def list_checkin(token: str = Depends(oauth2_scheme)):
@@ -76,15 +75,16 @@ def add_center_routes(app: FastAPI):
     async def check_out(checkout_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkout_req.room_id
         user_id = checkout_req.user_id
-        check = await CheckIn.check(room_id=room_id, user_id=user_id, status=CheckInStatus.CheckIn)
+        check: CheckIn = await CheckIn.check(room_id=room_id, user_id=user_id, status=CheckInStatus.CheckIn)
         if check is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The user has not checked in",
             )
-        # FIXME: get current time from Scheduler
-        await check.set.checkout_time(0)
+        await check.set.checkout_time(MyScheduler.timestamp)
         await check.set.status(CheckInStatus.CheckOut)
+        room = await Room.get_first(room_id=check.room_id)
+        await room.set.status(CheckInStatus.CheckOut)
         return check.dict()
 
     @app.get('/air/switch')
