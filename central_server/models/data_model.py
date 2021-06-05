@@ -43,6 +43,13 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
 
         @staticmethod
+        async def list_all():
+            async with AIOTinyDB(db_path) as db:
+                res = db.table(data_name).all()
+                return [cls(**x) for x in res]
+
+
+        @staticmethod
         async def get_first(**kwargs):
             res = await cls.get_all(**kwargs)
             if len(res) == 0:
@@ -106,6 +113,19 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
             setattr(self, field, value)
             await cls._update(field, value, item[pkey_field] == pkey)
 
+        class FieldUpdater(object):
+            def __init__(self, data_self):
+                self.data_self = data_self
+
+            def __getattr__(self, item):
+                async def func(value):
+                    await self.data_self.update_field(item, value)
+                return func
+
+        @property
+        def field_updater(self):
+            return FieldUpdater(self)
+
         setattr(cls, 'item', item)
         # Never call `_create` directly, use `new` instead!
         setattr(cls, '_create', create)
@@ -113,12 +133,15 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
         setattr(cls, 'where', where)
         setattr(cls, 'get_all', get_all)
         setattr(cls, 'get_first', get_first)
+        setattr(cls, 'list_all', list_all)
         setattr(cls, 'exists', exists)
         # Never call `_update` directly, get the data model object and use `update_field` instead!
         setattr(cls, '_update', update)
         setattr(cls, 'get', get)
         setattr(cls, 'pkey', pkey)
         setattr(cls, 'update_field', update_field)
+        # `set` is syntax sugar: obj.update_field('field', value) is equivalent to obj.set.field(value)
+        setattr(cls, 'set', field_updater)
 
         return cls
 

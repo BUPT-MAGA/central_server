@@ -51,6 +51,11 @@ def add_center_routes(app: FastAPI):
         user: Admin = await Admin.new(username=username, password=password)
         return user.dict()
 
+
+    @app.get('/air/list_checkin')
+    async def list_checkin(token: str = Depends(oauth2_scheme)):
+        return await CheckIn.list_all()
+
     @app.post('/air/checkin')
     async def check_in(checkin_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkin_req.room_id
@@ -77,8 +82,9 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The user has not checked in",
             )
-        await check.update_field('checkout_time', MyScheduler.timestamp)
-        await check.update_field('status', CheckInStatus.CheckOut)
+        # FIXME: get current time from Scheduler
+        await check.set.checkout_time(0)
+        await check.set.status(CheckInStatus.CheckOut)
         return check.dict()
 
     @app.get('/air/switch')
