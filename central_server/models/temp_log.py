@@ -6,7 +6,7 @@ from .data_model import DataModel
 from .types import EventType
 
 
-@DataModel(pkey_field='id')
+@DataModel(pkey_field='id', auto_inc=True)
 class TempLog(BaseModel):
     id: int
     wind_speed: Optional[WindSpeed]
