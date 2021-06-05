@@ -22,8 +22,8 @@ def add_center_routes(app: FastAPI):
     async def login(form: OAuth2PasswordRequestForm = Depends()):
         username = form.username
         password = form.password
-        user = Admin.auth(username, password)
-        if not user:
+        user = await Admin.check(username=username, password=password)
+        if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
