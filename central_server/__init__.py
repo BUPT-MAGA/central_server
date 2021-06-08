@@ -11,7 +11,7 @@ def create_app():
     add_slave_routes(app)
 
     @app.on_event('startup')
-    @repeat_every(seconds=REAL_SEC_PER_MIN, wait_first=True)
+    @repeat_every(seconds=WORK_RATE, wait_first=True)
     async def periodic():
         await MyScheduler.tick()
 

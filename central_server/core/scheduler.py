@@ -1,5 +1,4 @@
-import asyncio
-from time import sleep
+from time import time
 from config import *
 from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn, CenterStatus
 from .queue import Queue
@@ -12,19 +11,19 @@ class Scheduler:
 
     def turn_on(self):
         self._wind_mode = WindMode.Snow
-        self._timestamp = 0
+        # self._timestamp = 0
         self._temperature = TEMP_DEFAULT[self._wind_mode]
         self._status = CenterStatus.Off
         self.req_queue.clear()
 
     async def tick(self):
-        self._timestamp += 1
+        # self._timestamp += 1
         if self._status == CenterStatus.Off:
             return
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
             await TempLog.new(wind_speed=room.wind_speed,
-                              timestamp=self._timestamp,
+                              timestamp=int(time()),
                               event_type=EventType.TEMP,
                               current_temp=room.current_temp)
             check_in: CheckIn = await CheckIn.get_last(room_id=room.id, status=CheckInStatus.CheckIn)
@@ -34,12 +33,12 @@ class Scheduler:
 
     def update_fee(self, origin_fee: float, room: Room):
         if self.req_queue.is_serving(room.id):
-            return origin_fee + UNIT_PRICE*PRICE_TABLE[room.wind_speed]
+            return origin_fee + UNIT_PRICE*PRICE_TABLE[room.wind_speed]/60
         return origin_fee
 
-    @property
-    def timestamp(self):
-        return self._timestamp
+    # @property
+    # def timestamp(self):
+    #     return self._timestamp
 
     @property
     def wind_mode(self):

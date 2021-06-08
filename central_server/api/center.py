@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-
+from time import time
+from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
@@ -67,7 +68,7 @@ def add_center_routes(app: FastAPI):
             )
         check_in_log: CheckIn = await CheckIn.new(user_id=user_id,
                                                   room_id=room_id,
-                                                  checkin_time=MyScheduler.timestamp)
+                                                  checkin_time=int(time()))
         # TODO: new a room when a slave connection comes
         return check_in_log.dict()
 
@@ -81,7 +82,7 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The user has not checked in",
             )
-        await check.set.checkout_time(MyScheduler.timestamp)
+        await check.set.checkout_time(int(time()))
         await check.set.status(CheckInStatus.CheckOut)
         room = await Room.get_first(room_id=check.room_id)
         await room.set.status(CheckInStatus.CheckOut)
@@ -121,6 +122,42 @@ def add_center_routes(app: FastAPI):
         return MyScheduler.temperature
 
     @app.get('/air/statistic')
-    async def get_statistic(room_id: str = '', scale: int = 0, token: str = Depends(oauth2_scheme)):
+    async def get_statistic(room_id: str = '', scale: int = 1, token: str = Depends(oauth2_scheme)):
         # TODO handle getting statistic
+        if scale < 1 or scale > 3:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The scale is illegal",
+            )
+
         return ''
+
+    @app.get('/air/bill')
+    async def get_bill(user_id: str, token: str = Depends(oauth2_scheme)):
+        res: list = await CheckIn.get_bill(user_id=user_id)
+        if res is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="There's no such user.",
+            )
+        return res
+
+    @app.get('/air/room_info')
+    async def get_room_info(token: str = Depends(oauth2_scheme)):
+        res: list = await Room.get_info()
+        if res is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="There's no such user.",
+            )
+        return res
+
+    @app.get('/air/room_status')
+    async def get_room_status(room_id: str, token: str = Depends(oauth2_scheme)):
+        res: Room = await Room.get(id=room_id)
+        if res is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="There's no such room.",
+            )
+        return res

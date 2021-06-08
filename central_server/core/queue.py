@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 import heapq
 from central_server.models import WindSpeed
+from config import WORK_RATE
 
 
 class ServiceStatus(Enum):
@@ -76,7 +77,7 @@ class Queue:
     def tick(self):
         for status in self.queues.keys():
             for i in range(len(self.queues[status])):
-                self.queues[status][i].time += 1
+                self.queues[status][i].time += WORK_RATE
         self.update()
 
     def update(self):
@@ -122,4 +123,3 @@ if __name__ == '__main__':
     queue.push(service)
     for q in queue.queues[ServiceStatus.Serving]:
         print(q)
-

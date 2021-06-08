@@ -1,11 +1,11 @@
 import os
-from central_server.models.types import WindMode, WindSpeed
+from central_server.models.my_types import WindMode, WindSpeed
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 DB_PATH = 'db.json'
 
-REAL_SEC_PER_MIN = 1        # eg. 1 sec in the real world means 1 min in maga.
+WORK_RATE = 1        # eg. work every 1 sec
 REQ_EXPIRED_TIME = 30       # drop too long service in queue
 TOKEN_EXPIRED_TIME = 100    # minutes
 

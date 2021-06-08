@@ -37,3 +37,9 @@ class WindSpeed(IntEnum):
         if self.__class__ is other.__class__:
             return self.value < other.value
         return NotImplemented
+
+
+class Scale(IntEnum):
+    Day = 1
+    Week = 2
+    Month = 3

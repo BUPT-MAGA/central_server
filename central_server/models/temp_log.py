@@ -3,7 +3,7 @@ from enum import Enum
 from .room import WindSpeed
 from pydantic import BaseModel
 from .data_model import DataModel
-from .types import EventType
+from .my_types import EventType
 
 
 @DataModel(pkey_field='id', auto_inc=True)

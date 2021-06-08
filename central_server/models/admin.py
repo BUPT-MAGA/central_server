@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel
 from .data_model import DataModel
-from .types import AdminStatus
+from .my_types import AdminStatus
 
 
 @DataModel(pkey_field='username')

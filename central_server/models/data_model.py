@@ -133,6 +133,7 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
         setattr(cls, 'where', where)
         setattr(cls, 'get_all', get_all)
         setattr(cls, 'get_first', get_first)
+        setattr(cls, 'get_last', get_last)
         setattr(cls, 'list_all', list_all)
         setattr(cls, 'exists', exists)
         # Never call `_update` directly, get the data model object and use `update_field` instead!
