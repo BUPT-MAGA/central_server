@@ -16,6 +16,9 @@ class Scheduler:
         self._temperature = TEMP_DEFAULT[self._wind_mode]
         self.req_queue.clear()
 
+    def now(self):
+        return int(time())
+
     async def tick(self):
         if self._status == CenterStatus.Off:
             return
