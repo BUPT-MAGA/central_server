@@ -22,23 +22,21 @@ class Scheduler:
             return
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
-            await TempLog.new(wind_speed=room.wind_speed,
+            if self.req_queue.is_serving(room.id):
+                new_fee = UNIT_PRICE*PRICE_TABLE[room.wind_speed]/60
+            else:
+                new_fee = 0.0
+            await TempLog.new(room_id=room.id,
+                              wind_speed=room.wind_speed,
                               timestamp=int(time()),
                               event_type=EventType.TEMP,
-                              current_temp=room.current_temp)
+                              current_temp=room.current_temp,
+                              current_fee=new_fee
+                              )
             check_in: CheckIn = await CheckIn.get_last(room_id=room.id, status=CheckInStatus.CheckIn)
             assert check_in is not None
-            await CheckIn.set.fee(self.update_fee(check_in.fee, room))
+            await CheckIn.set.fee(check_in.fee + new_fee)
         self.req_queue.tick()
-
-    def update_fee(self, origin_fee: float, room: Room):
-        if self.req_queue.is_serving(room.id):
-            return origin_fee + UNIT_PRICE*PRICE_TABLE[room.wind_speed]/60
-        return origin_fee
-
-    # @property
-    # def timestamp(self):
-    #     return self._timestamp
 
     @property
     def wind_mode(self):

@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from .body import *
-from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus
+from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale
 from central_server.core import MyScheduler
 
 
@@ -122,15 +122,14 @@ def add_center_routes(app: FastAPI):
         return MyScheduler.temperature
 
     @app.get('/air/statistic')
-    async def get_statistic(room_id: str = '', scale: int = 1, token: str = Depends(oauth2_scheme)):
-        # TODO handle getting statistic
+    async def get_statistic(scale: int = 1, token: str = Depends(oauth2_scheme)):
         if scale < 1 or scale > 3:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The scale is illegal",
             )
-
-        return ''
+        res = TempLog.get_statistic(Scale(scale))
+        return res
 
     @app.get('/air/bill')
     async def get_bill(user_id: str, token: str = Depends(oauth2_scheme)):
