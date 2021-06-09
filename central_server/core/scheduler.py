@@ -8,11 +8,12 @@ class Scheduler:
     def __init__(self):
         # set default mode
         self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
+        self.init_air()
 
-    def turn_on(self):
+    def init_air(self):
+        self._status = CenterStatus.Off
         self._wind_mode = WindMode.Snow
         self._temperature = TEMP_DEFAULT[self._wind_mode]
-        self._status = CenterStatus.Off
         self.req_queue.clear()
 
     async def tick(self):
@@ -65,11 +66,11 @@ class Scheduler:
         return self._status
 
     @status.setter
-    def status(self, status):
+    def status(self, status: CenterStatus):
         if isinstance(status, CenterStatus):
             if self._status != status:
                 self._status = status
                 if self._status == CenterStatus.On:
-                    self.turn_on()
+                    self.init_air()
         else:
             raise ValueError('Illegal center status value!')

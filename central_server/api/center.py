@@ -92,7 +92,8 @@ def add_center_routes(app: FastAPI):
     async def switch_air(action: int = 1, token: str = Depends(oauth2_scheme)):
         try:
             MyScheduler.status = CenterStatus(action)
-        except:
+        except Exception as e:
+            print(e)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The action is out of range",
@@ -103,7 +104,8 @@ def add_center_routes(app: FastAPI):
     async def set_mode(mode: int = 1, token: str = Depends(oauth2_scheme)):
         try:
             MyScheduler.wind_mode = WindMode(mode)
-        except:
+        except Exception as e:
+            print(e)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The mode is out of range",
@@ -123,12 +125,16 @@ def add_center_routes(app: FastAPI):
 
     @app.get('/air/statistic')
     async def get_statistic(scale: int = 1, token: str = Depends(oauth2_scheme)):
-        if scale < 1 or scale > 3:
+        try:
+            print(scale)
+            res = await TempLog.get_statistic(Scale(scale))
+            print(res)
+        except Exception as e:
+            print(e)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The scale is illegal",
             )
-        res = TempLog.get_statistic(Scale(scale))
         return res
 
     @app.get('/air/bill')
@@ -147,16 +153,16 @@ def add_center_routes(app: FastAPI):
         if res is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="There's no such user.",
+                detail="There's no rooms.",
             )
         return res
 
     @app.get('/air/room_status')
     async def get_room_status(room_id: str, token: str = Depends(oauth2_scheme)):
-        res: Room = await Room.get(id=room_id)
+        res: Room = await Room.get(room_id)
         if res is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="There's no such room.",
+                detail="There's no such room whose ac is open.",
             )
         return res
