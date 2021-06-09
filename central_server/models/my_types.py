@@ -5,6 +5,10 @@ class EventType(IntEnum):
     TEMP = 1
     START = 2
     END = 3
+    # 从机上线
+    ONLINE = 4
+    # 从机下线
+    OFFLINE = 5
 
 
 class CheckInStatus(IntEnum):
