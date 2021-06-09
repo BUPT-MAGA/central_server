@@ -1,5 +1,6 @@
 import os
-from central_server.models.my_types import WindMode, WindSpeed
+import pytz
+from central_server.models.my_types import WindMode, WindSpeed, Scale
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -29,3 +30,6 @@ PRICE_TABLE = {
 }
 
 UNIT_PRICE = 5.0
+
+REPORT_SPAN = 6
+TIME_ZONE = pytz.timezone('Asia/Shanghai')

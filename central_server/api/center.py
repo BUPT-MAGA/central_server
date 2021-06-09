@@ -3,15 +3,17 @@ from time import time
 from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-import json
-from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
+from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, decode_access_token
 from .body import *
 from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale
 from central_server.core import MyScheduler
+from central_server.utils import timestamp_to_tz
+from config import REPORT_SPAN
 
+# TODO fix size rooms
 
 def add_center_routes(app: FastAPI):
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/manager/login')
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/manager/login')
 
     @app.get('/')
     async def hello():
@@ -21,7 +23,7 @@ def add_center_routes(app: FastAPI):
     async def read_items(token: str = Depends(oauth2_scheme)):
         return {"token": token}
 
-    @app.post('/manager/login')
+    @app.post('/api/manager/login')
     async def login(form: OAuth2PasswordRequestForm = Depends()):
         username = form.username
         password = form.password
@@ -38,7 +40,7 @@ def add_center_routes(app: FastAPI):
         )
         return {"access_token": access_token, "token_type": "bearer"}
 
-    @app.post('/manager/register')
+    @app.post('/api/manager/register')
     async def register(admin_req: AdminReq):
         username = admin_req.username
         password = admin_req.password
@@ -52,11 +54,18 @@ def add_center_routes(app: FastAPI):
         user: Admin = await Admin.new(username=username, password=password)
         return user.dict()
 
-    @app.get('/air/list_checkin')
+    @app.get('/api/profile')
+    async def get_profile(token: str = Depends(oauth2_scheme)):
+        if token is None:
+            return {}
+        user: dict = decode_access_token(token)
+        return {'username': user['sub'], 'role': 'admin'}
+
+    @app.get('/api/list_checkin')
     async def list_checkin(token: str = Depends(oauth2_scheme)):
         return await CheckIn.list_all()
 
-    @app.post('/air/checkin')
+    @app.post('/api/checkin')
     async def check_in(checkin_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkin_req.room_id
         user_id = checkin_req.user_id
@@ -72,7 +81,7 @@ def add_center_routes(app: FastAPI):
         # TODO: new a room when a slave connection comes
         return check_in_log.dict()
 
-    @app.post('/air/checkout')
+    @app.post('/api/checkout')
     async def check_out(checkout_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkout_req.room_id
         user_id = checkout_req.user_id
@@ -85,10 +94,11 @@ def add_center_routes(app: FastAPI):
         await check.set.checkout_time(int(time()))
         await check.set.status(CheckInStatus.CheckOut)
         room = await Room.get_first(room_id=check.room_id)
-        await room.set.status(CheckInStatus.CheckOut)
+        if room is not None:
+            await room.set.status(CheckInStatus.CheckOut)
         return check.dict()
 
-    @app.get('/air/switch')
+    @app.get('/api/switch')
     async def switch_air(action: int = 1, token: str = Depends(oauth2_scheme)):
         try:
             MyScheduler.status = CenterStatus(action)
@@ -100,7 +110,7 @@ def add_center_routes(app: FastAPI):
             )
         return MyScheduler.status.value
 
-    @app.get('/air/mode')
+    @app.get('/api/mode')
     async def set_mode(mode: int = 1, token: str = Depends(oauth2_scheme)):
         try:
             MyScheduler.wind_mode = WindMode(mode)
@@ -112,7 +122,7 @@ def add_center_routes(app: FastAPI):
             )
         return MyScheduler.wind_mode.value
 
-    @app.get('/air/temp')
+    @app.get('/api/temp')
     async def set_temp(temp: int = 0, token: str = Depends(oauth2_scheme)):
         try:
             MyScheduler.temperature = temp
@@ -123,11 +133,11 @@ def add_center_routes(app: FastAPI):
             )
         return MyScheduler.temperature
 
-    @app.get('/air/statistic')
-    async def get_statistic(scale: int = 1, token: str = Depends(oauth2_scheme)):
+    @app.get('/api/report_hotel')
+    async def report_hotel(timestamp: int, scale: int = 1, token: str = Depends(oauth2_scheme)):
         try:
             print(scale)
-            res = await TempLog.get_statistic(Scale(scale))
+            res = await TempLog.report_hotel(timestamp_to_tz(timestamp), Scale(scale))
             print(res)
         except Exception as e:
             print(e)
@@ -137,7 +147,29 @@ def add_center_routes(app: FastAPI):
             )
         return res
 
-    @app.get('/air/bill')
+    @app.get('/api/report_room')
+    async def report_room(room_id: str, timestamp: int ,scale: int = 1, span: int = REPORT_SPAN, token: str = Depends(oauth2_scheme)):
+        try:
+            print(scale)
+            res = await TempLog.report_room_span(room_id, timestamp_to_tz(timestamp), Scale(scale), span)
+            print(res)
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The scale is illegal",
+            )
+        # res = {
+        #     '120': {
+        #         'spans': [{'start_time': 0, 'end_time': 0, 'start_temp': 0, 'end_temp': 0, 'fee': 0.0, 'wind': 0.0}],
+        #         'open_cnt': 0,
+        #         'close_cnt': 0,
+        #         'sum_fee': 0.0
+        #     }
+        # }
+        return res
+
+    @app.get('/api/bill')
     async def get_bill(user_id: str, token: str = Depends(oauth2_scheme)):
         res: list = await CheckIn.get_bill(user_id=user_id)
         if res is None:
@@ -147,7 +179,7 @@ def add_center_routes(app: FastAPI):
             )
         return res
 
-    @app.get('/air/room_info')
+    @app.get('/api/room_info')
     async def get_room_info(token: str = Depends(oauth2_scheme)):
         res: list = await Room.get_info()
         if res is None:
@@ -157,12 +189,31 @@ def add_center_routes(app: FastAPI):
             )
         return res
 
-    @app.get('/air/room_status')
-    async def get_room_status(room_id: str, token: str = Depends(oauth2_scheme)):
-        res: Room = await Room.get(room_id)
+    @app.get('/api/room_status')
+    async def get_room_status(token: str = Depends(oauth2_scheme)):
+        res: List[Room] = await Room.get_status()
         if res is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There's no such room whose ac is open.",
             )
+        # res = [{
+        #     'room_id': '120',
+        #     'status': 1,
+        #     'wind_mode': 1,
+        #     'wind_speed': 1,
+        #     'current_temp': 20,
+        #     'target_temp': 25,
+        #     'served_time': 2,
+        #     'wait_time': 3
+        # },{
+        #     'room_id': '120',
+        #     'status': 1,
+        #     'wind_mode': 1,
+        #     'wind_speed': 1,
+        #     'current_temp': 20,
+        #     'target_temp': 25,
+        #     'served_time': 2,
+        #     'wait_time': 3
+        # }]
         return res
