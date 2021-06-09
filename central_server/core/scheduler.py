@@ -11,13 +11,11 @@ class Scheduler:
 
     def turn_on(self):
         self._wind_mode = WindMode.Snow
-        # self._timestamp = 0
         self._temperature = TEMP_DEFAULT[self._wind_mode]
         self._status = CenterStatus.Off
         self.req_queue.clear()
 
     async def tick(self):
-        # self._timestamp += 1
         if self._status == CenterStatus.Off:
             return
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)

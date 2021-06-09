@@ -13,6 +13,13 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
             q = q & (Query()[item[0]] == item[1])
         return q
 
+    def build_filter(**kwargs):
+        items = list(kwargs.items())
+        q = Query()[items[0][0]].test(items[0][1])
+        for item in items[1:]:
+            q = q & (Query()[item[0]].test(item[1]))
+        return q
+
     def wrap(cls):
         data_name = cls.__name__
         db_path = config.DB_PATH
@@ -35,6 +42,10 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
             async with AIOTinyDB(db_path) as db:
                 res = await cls.where(item[pkey_field] == pkey)
                 return None if len(res) == 0 else res[0]
+
+        @staticmethod
+        async def filter(**kwargs):
+            return await cls.where(build_filter(**kwargs))
 
 
         @staticmethod
@@ -131,6 +142,7 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
         setattr(cls, '_create', create)
         setattr(cls, 'new', new)
         setattr(cls, 'where', where)
+        setattr(cls, 'filter', filter)
         setattr(cls, 'get_all', get_all)
         setattr(cls, 'get_first', get_first)
         setattr(cls, 'get_last', get_last)

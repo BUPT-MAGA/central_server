@@ -23,8 +23,9 @@ class TempLog(BaseModel):
         DEFAULT_SPAN = {'start_time': 0, 'end_time': 0, 'start_temp': 0, 'end_temp': 0, 'fee': 0.0, 'wind': 0.0}
         ret = {}
         now_span = {}
-        logs: List[TempLog] = TempLog.list_all()
-        scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log, scale), logs))
+        # logs: List[TempLog] = TempLog.list_all()
+        # scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log, scale), logs))
+        scaled_logs: List[TempLog] = TempLog.filter(timestamp=lambda x: check_scale(x, scale))
         for log in scaled_logs:
             if log.room_id not in ret.keys():
                 ret[log.room_id] = {'sum_fee': 0.0, 'spans': []}
