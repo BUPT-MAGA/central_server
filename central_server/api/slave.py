@@ -63,7 +63,8 @@ def add_slave_routes(app: FastAPI):
             'data': data
         })
 
-    async def send_wind_status(check_in: CheckIn):
+    async def send_wind_status(check_in_id: int):
+        check_in = await CheckIn.get(check_in_id)
         room_id = check_in.room_id
         service = MyScheduler.req_queue.get_service(room_id)
         temp = MyScheduler.temperature
