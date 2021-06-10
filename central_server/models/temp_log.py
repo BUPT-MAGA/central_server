@@ -13,10 +13,10 @@ from central_server.utils import timestamp_to_tz, construct_weeks, construct_day
 class TempLog(BaseModel):
     id: int
     room_id: str
-    wind_speed: Optional[WindSpeed]
+    wind_speed: Optional[WindSpeed] = None
     timestamp: int
     event_type: EventType
-    current_temp: int
+    current_temp: Optional[int] = None
     current_fee: float = 0.0
 
     @staticmethod
