@@ -4,6 +4,7 @@ from time import time
 from config import *
 from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn, CenterStatus
 from .queue import Queue
+from central_server.api.conn_manager import MyManager
 
 
 Serving = namedtuple('Serving', ['check_in_id', 'service_time'])
@@ -100,6 +101,27 @@ class Scheduler:
     def now(self):
         return int(time())
 
+    async def send_wind_status(self, check_in_id: int):
+        check_in = await CheckIn.get(check_in_id)
+        room_id = check_in.room_id
+        room = await Room.get(room_id)
+        temp = self.temperature
+        speed = room.wind_speed
+        mode = self.wind_mode
+        cost = (await CheckIn.get(check_in.id)).fee
+        data = {
+            'temp': temp,
+            'speed': speed,
+            'mode': mode,
+            'cost': cost
+        }
+        ws = MyManager.active_connections[check_in]
+        await ws.send_json({
+            'event_id': 3,
+            'data': data
+        })
+
+
     async def tick(self):
         if self._status == CenterStatus.Off:
             return
@@ -123,6 +145,10 @@ class Scheduler:
                               event_type=EventType.END,
                               current_temp=room.current_temp,
                               current_fee=0.0)
+
+        for serving in self.serving_queue:
+            check_in_id = serving.check_in_id
+            await self.send_wind_status(check_in_id)
 
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
