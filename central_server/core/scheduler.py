@@ -39,6 +39,10 @@ class Scheduler:
                 pending.append(check_in_id)
         return ready, pending
 
+    def remove_if_exists(self, check_in_id: int):
+        self.pending_queue = [x for x in self.pending_queue if x != check_in_id]
+        self.serving_queue = [x for x in self.serving_queue if x.check_in_id != check_in_id]
+
     async def split_serving_queue(self):
         async def temp_satisfied(serving: Serving) -> bool:
             check_in: CheckIn = await CheckIn.get(serving.check_in_id)
