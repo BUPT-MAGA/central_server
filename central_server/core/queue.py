@@ -61,6 +61,13 @@ class Queue:
             return None
         return heapq.heappop(self.queues[status])
 
+    def get_service(self, room_id) -> Service:
+        for status in self.queues.keys():
+            res = list(filter(lambda x: x.room_id != room_id, self.queues[status]))
+            if len(res) > 0:
+                return res[0]
+        return None
+
     def remove_if_exists(self, room_id):
         for status in self.queues.keys():
             self.queues[status] = list(filter(lambda x: x.room_id != room_id, self.queues[status]))

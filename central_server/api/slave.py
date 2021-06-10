@@ -60,6 +60,26 @@ def add_slave_routes(app: FastAPI):
             'data': data
         })
 
+    async def send_wind_status(check_in: CheckIn):
+        room_id = check_in.room_id
+        room = await Room.get(room_id)
+        service = MyScheduler.req_queue.get_service(room_id)
+        temp = MyScheduler.temperature
+        speed = service.wind_speed
+        mode = MyScheduler.wind_mode
+        cost = (await CheckIn.get(check_in.id)).fee
+        data = {
+            'temp': temp,
+            'speed': speed,
+            'mode': mode,
+            'cost': cost
+        }
+        ws = MyManager.active_connections[check_in]
+        await ws.send_json({
+            'event_id': 3,
+            'data': data
+        })
+
     @app.websocket('/')
     async def handle_message(ws: WebSocket, room_id: str, user_id: str):
         check_in = await CheckIn.check(room_id=room_id, user_id=user_id, status=CheckInStatus.CheckIn)
