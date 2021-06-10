@@ -6,17 +6,17 @@ from central_server.models.check_in import CheckIn
 class ConnectionManager:
     def __init__(self):
         # 存放激活的ws连接对象
-        self.active_connections: Dict[CheckIn, WebSocket] = dict()
+        self.active_connections: Dict[int, WebSocket] = dict()
 
-    async def connect(self, ws: WebSocket, check_in: CheckIn):
+    async def connect(self, ws: WebSocket, check_in_id: int):
         # 等待连接
         await ws.accept()
         # 存储ws连接对象
-        self.active_connections[check_in] = ws
+        self.active_connections[check_in_id] = ws
 
-    def disconnect(self, ws: WebSocket, check_in: CheckIn):
+    def disconnect(self, ws: WebSocket, check_in_id: int):
         # 关闭时 移除ws对象
-        self.active_connections.pop(check_in)
+        self.active_connections.pop(check_in_id)
 
     @staticmethod
     async def send_personal_message(message: str, ws: WebSocket):

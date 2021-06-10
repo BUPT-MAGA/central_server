@@ -1,20 +1,101 @@
+from typing import Tuple, List
+from collections import namedtuple
 from time import time
 from config import *
 from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn, CenterStatus
 from .queue import Queue
 
 
+Serving = namedtuple('Serving', ['check_in_id', 'service_time'])
+
+
 class Scheduler:
+
     def __init__(self):
         # set default mode
-        self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
+        # self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
         self.init_air()
+
+        self.pending_queue: List[int] = []
+        self.serving_queue: List[Serving] = []
+
+    async def split_pending_queue(self):
+        async def need_speed(check_in_id: int) -> bool:
+            check_in: CheckIn = await CheckIn.get(check_in_id)
+            room: Room = await Room.get(check_in.id)
+            if self.wind_mode == WindMode.Snow:
+                return room.current_temp > room.target_temp
+            else:
+                return room.current_temp < room.target_temp
+
+        ready = []
+        pending = []
+        for check_in_id in self.pending_queue:
+            need = await need_speed(check_in_id)
+            if need:
+                ready.append(check_in_id)
+            else:
+                pending.append(check_in_id)
+        return ready, pending
+
+    async def split_serving_queue(self):
+        async def temp_satisfied(serving: Serving) -> bool:
+            check_in: CheckIn = await CheckIn.get(serving.check_in_id)
+            room: Room = await Room.get(check_in.id)
+            if self.wind_mode == WindMode.Snow:
+                return room.current_temp <= room.target_temp
+            else:
+                return room.current_temp >= room.target_temp
+
+        async def swap_out(serving: Serving) -> bool:
+            return serving.service_time >= REQ_EXPIRED_TIME
+
+        async def should_drop(serving: Serving) -> bool:
+            b1 = await temp_satisfied(serving)
+            b2 = await swap_out(serving)
+
+            return b1 or b2
+
+        ok = []
+        drop = []
+        for serving in self.serving_queue:
+            need_drop = await should_drop(serving)
+            if need_drop:
+                drop.append(serving)
+            else:
+                ok.append(serving)
+        return ok, drop
+
+    async def update_queue(self):
+        pending_ready, pending_wait = await self.split_pending_queue()
+        serving_ok, serving_drop = await self.split_serving_queue()
+
+        capacity = MAX_SERVING_LEN - len(serving_ok)
+
+        start_service = pending_ready[capacity:]
+        end_service = [x.check_in_id for x in serving_drop]
+
+        next_pending = pending_ready[capacity:] + pending_wait + [x.check_in_id for x in serving_drop]
+        next_serving = serving_ok + [Serving(check_in_id=x, service_time=0) for x in pending_wait[:capacity]]
+
+        self.pending_queue = next_pending
+        self.serving_queue = next_serving
+
+        return start_service, end_service
+
+    async def is_serving(self, room_id: str):
+        for serving in self.serving_queue:
+            check_in_id = serving.check_in_id
+            check_in = await CheckIn.get(check_in_id)
+            if check_in.room_id == room_id:
+                return True
+        return False
 
     def init_air(self):
         self._status = CenterStatus.Off
         self._wind_mode = WindMode.Snow
         self._temperature = TEMP_DEFAULT[self._wind_mode]
-        self.req_queue.clear()
+        # self.req_queue.clear()
 
     def now(self):
         return int(time())
@@ -22,9 +103,31 @@ class Scheduler:
     async def tick(self):
         if self._status == CenterStatus.Off:
             return
+
+        start_service, end_service = await self.update_queue()
+        for start_id in start_service:
+            check_in: CheckIn = await CheckIn.get(start_id)
+            room: Room = await Room.get(check_in.room_id)
+            await TempLog.new(room_id=check_in.room_id,
+                              wind_speed=None,
+                              timestamp=self.now(),
+                              event_type=EventType.START,
+                              current_temp=room.current_temp,
+                              current_fee=0.0)
+        for end_id in end_service:
+            check_in: CheckIn = await CheckIn.get(end_id)
+            room: Room = await Room.get(check_in.room_id)
+            await TempLog.new(room_id=check_in.room_id,
+                              wind_speed=None,
+                              timestamp=self.now(),
+                              event_type=EventType.END,
+                              current_temp=room.current_temp,
+                              current_fee=0.0)
+
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
-            if self.req_queue.is_serving(room.id):
+            is_serving = self.is_serving(room.id)
+            if is_serving:
                 new_fee = UNIT_PRICE*PRICE_TABLE[room.wind_speed]/60
             else:
                 new_fee = 0.0
@@ -38,7 +141,7 @@ class Scheduler:
             check_in: CheckIn = await CheckIn.get_last(room_id=room.id, status=CheckInStatus.CheckIn)
             assert check_in is not None
             await CheckIn.set.fee(check_in.fee + new_fee)
-        self.req_queue.tick()
+        # self.req_queue.tick()
 
     @property
     def wind_mode(self):
