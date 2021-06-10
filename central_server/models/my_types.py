@@ -27,14 +27,14 @@ class CenterStatus(IntEnum):
 
 
 class WindMode(IntEnum):
-    Snow = 1
-    Sun = 2
+    Snow = 0
+    Sun = 1
 
 
 class WindSpeed(IntEnum):
-    Low = 1
-    Mid = 2
-    High = 3
+    Low = 0
+    Mid = 1
+    High = 2
 
 
     def __lt__(self, other):
