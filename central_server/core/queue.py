@@ -110,6 +110,7 @@ class Queue:
         self.queues[ServiceStatus.Serving].clear()
         self.queues[ServiceStatus.Waiting].clear()
 
+
 if __name__ == '__main__':
     queue = Queue(1000, 3)
     service = Service(room_id='1', wind_speed=WindSpeed.Low, status=ServiceStatus.Waiting, time=0)
