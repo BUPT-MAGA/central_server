@@ -7,6 +7,7 @@ from central_server.models.temp_log import TempLog, EventType
 from central_server.models.room import Room
 from central_server.core import MyScheduler
 from central_server.core.queue import Service, ServiceStatus
+from central_server.reporting import slave_api
 
 
 from .conn_manager import MyManager
@@ -17,14 +18,14 @@ def add_slave_routes(app: FastAPI):
         pass
 
     async def slave_status_report(check_in_id: int, data: dict):
-        print(f'[SLAVE/STATUS] check_in_id={check_in_id}, data={data}')
+        slave_api.info(f'check_in_id={check_in_id}, data={data}')
         check_in = await CheckIn.get(check_in_id)
         cur_temp, tar_temp, mode, speed = [data[x] for x in ['cur_temp', 'tar_temp', 'mode', 'speed']]
 
         if check_in_id in pending_checkins:
             # add to scheduler's ready queue
             MyScheduler.pending_queue.append(check_in_id)
-            print(f'[SLAVE/STATUS] pushing check in to scheduler')
+            slave_api.info(f'[SLAVE/STATUS] pushing check in to scheduler')
             # MyScheduler.req_queue.push(
             #     Service(
             #         room_id=check_in.room_id, wind_speed=speed,
@@ -33,7 +34,7 @@ def add_slave_routes(app: FastAPI):
 
         room = await Room.get(check_in.room_id)
         if room is None:
-            print(f'[SLAVE/STATUS] Invalid room id: {check_in.room_id}')
+            slave_api.warn(f'[SLAVE/STATUS] Invalid room id: {check_in.room_id}')
             return
         room.set.current_temp(cur_temp)
         room.set.target_temp(tar_temp)
@@ -64,7 +65,7 @@ def add_slave_routes(app: FastAPI):
     async def send_status(check_in_id: int):
         ws = MyManager.active_connections[check_in_id]
         data = {'mode': MyScheduler.wind_mode.value, 'temp': MyScheduler.temperature}
-        print(f'[SLAVE/SEND_STATUS] -> {check_in_id}, data = {data}')
+        slave_api.info(f'[SLAVE/SEND_STATUS] -> {check_in_id}, data = {data}')
         await ws.send_json({
             'event_id': 1,
             'data': data
@@ -72,14 +73,14 @@ def add_slave_routes(app: FastAPI):
 
     @app.websocket('/ws')
     async def handle_message(ws: WebSocket, room_id: str, user_id: str):
-        print(f'[SLAVE/CONNECT] New connection with room_id={room_id}, user_id={user_id}')
+        slave_api.info(f'New connection with room_id={room_id}, user_id={user_id}')
         check_in = await CheckIn.check(room_id=room_id, user_id=user_id, status=CheckInStatus.CheckIn)
         if check_in is None:
-            print(f'[SLAVE/CONNECT] Invalid check in, refuse to connect')
+            slave_api.warn(f'Invalid check in, refuse to connect')
             # 有内鬼，终止交易！
             return
         await MyManager.connect(ws, check_in.id)
-        print(f'[SLAVE/CONNECT] Valid authorization, connected')
+        slave_api.info(f'Valid authorization, connected')
         await send_status(check_in.id)
         await slave_online(check_in.id)  # 记录 ONLINE 事件
         pending_checkins.add(check_in.id)
@@ -93,5 +94,5 @@ def add_slave_routes(app: FastAPI):
             if check_in.id in pending_checkins:
                 pending_checkins.remove(check_in.id)
             MyScheduler.remove_if_exists(check_in.id)
-            print(f'[SLAVE/CONNECT] Check in {check_in.id} disconnected')
+            slave_api.info(f'Check in {check_in.id} disconnected')
             # MyScheduler.req_queue.remove_if_exists(check_in.room_id)
