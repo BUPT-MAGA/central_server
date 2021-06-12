@@ -25,7 +25,7 @@ def add_slave_routes(app: FastAPI):
         if check_in_id in pending_checkins:
             # add to scheduler's ready queue
             MyScheduler.pending_queue.append(check_in_id)
-            slave_api.info(f'[SLAVE/STATUS] pushing check in to scheduler')
+            slave_api.info(f'pushing check in to scheduler')
             # MyScheduler.req_queue.push(
             #     Service(
             #         room_id=check_in.room_id, wind_speed=speed,
@@ -34,7 +34,7 @@ def add_slave_routes(app: FastAPI):
 
         room = await Room.get(check_in.room_id)
         if room is None:
-            slave_api.warn(f'[SLAVE/STATUS] Invalid room id: {check_in.room_id}')
+            slave_api.error(f'invalid room id: {check_in.room_id}')
             return
         room.set.current_temp(cur_temp)
         room.set.target_temp(tar_temp)
@@ -65,7 +65,7 @@ def add_slave_routes(app: FastAPI):
     async def send_status(check_in_id: int):
         ws = MyManager.active_connections[check_in_id]
         data = {'mode': MyScheduler.wind_mode.value, 'temp': MyScheduler.temperature}
-        slave_api.info(f'[SLAVE/SEND_STATUS] -> {check_in_id}, data = {data}')
+        slave_api.info(f'sending status -> {check_in_id}, data = {data}')
         await ws.send_json({
             'event_id': 1,
             'data': data
