@@ -3,6 +3,7 @@ from collections import namedtuple
 from time import time
 from config import *
 from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn, CenterStatus
+from central_server.reporting import core_sched
 from .queue import Queue
 from central_server.api.conn_manager import MyManager
 
@@ -21,9 +22,13 @@ class Scheduler:
         self.serving_queue: List[Serving] = []
 
     async def split_pending_queue(self):
-        async def need_speed(check_in_id: int) -> bool:
+        core_sched.debug(f'split/pending: {self.pending_queue}')
+
+        async def need_wind(check_in_id: int) -> bool:
             check_in: CheckIn = await CheckIn.get(check_in_id)
-            room: Room = await Room.get(check_in.id)
+            core_sched.debug(f'   check_in = {check_in}')
+            room: Room = await Room.get(check_in.room_id)
+            core_sched.debug(f'   room = {room}')
             if self.wind_mode == WindMode.Snow:
                 return room.current_temp > room.target_temp
             else:
@@ -32,11 +37,14 @@ class Scheduler:
         ready = []
         pending = []
         for check_in_id in self.pending_queue:
-            need = await need_speed(check_in_id)
+            core_sched.debug(f'==> need_speed({check_in_id}) = ?')
+            need = await need_wind(check_in_id)
+            core_sched.debug(f'<== need_speed({check_in_id}) = {need}')
             if need:
                 ready.append(check_in_id)
             else:
                 pending.append(check_in_id)
+        core_sched.debug(f'split/pending: ready={ready}, pending={pending}')
         return ready, pending
 
     def remove_if_exists(self, check_in_id: int):
@@ -76,6 +84,8 @@ class Scheduler:
         for serving in self.serving_queue:
             serving.service_time += 1
 
+        core_sched.debug(f'serving duration updated, current serving queue: {self.serving_queue}')
+
         pending_ready, pending_wait = await self.split_pending_queue()
         serving_ok, serving_drop = await self.split_serving_queue()
 
@@ -89,6 +99,9 @@ class Scheduler:
 
         self.pending_queue = next_pending
         self.serving_queue = next_serving
+
+        core_sched.info(f'queue updated, started={start_service}, ended={end_service}, now pending={next_pending}, '
+                        f'now serving={next_serving}')
 
         return start_service, end_service
 
@@ -133,9 +146,12 @@ class Scheduler:
 
 
     async def tick(self):
+        core_sched.debug('tick')
         if self._status == CenterStatus.Off:
-            return
+            core_sched.debug('turned off, do nothing')
+            # return
 
+        core_sched.debug(f'updating service queue: current serving={self.serving_queue}, current pending={self.pending_queue}')
         start_service, end_service = await self.update_queue()
         for start_id in start_service:
             check_in: CheckIn = await CheckIn.get(start_id)
@@ -162,7 +178,7 @@ class Scheduler:
 
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         for room in checkin_rooms:
-            is_serving = self.is_serving(room.id)
+            is_serving = await self.is_serving(room.id)
             if is_serving:
                 new_fee = self._unit_price*PRICE_TABLE[room.wind_speed]/60
             else:

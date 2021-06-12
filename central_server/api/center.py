@@ -8,6 +8,7 @@ from .body import *
 from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale, WindSpeed
 from central_server.core import MyScheduler
 from central_server.utils import timestamp_to_tz
+from central_server.reporting import center_api
 from config import REPORT_SPAN, UNIT_PRICE, MAX_SERVING_LEN
 
 
@@ -79,13 +80,14 @@ def add_center_routes(app: FastAPI):
     async def db_create_room(room_id: str):
         data = {
             'id': room_id,
-            'status': CheckInStatus.CheckOut,
+            'status': CheckInStatus.CheckIn,
             'wind_mode': WindMode.Snow,
             'wind_speed': WindSpeed.Low,
             'current_temp': 30,
             'target_temp': 25,
         }
         res = await Room.new(**data)
+        center_api.info(f'room created: {res}')
         return res
 
     @app.post('/api/checkin')
