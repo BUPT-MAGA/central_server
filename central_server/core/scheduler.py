@@ -72,6 +72,10 @@ class Scheduler:
         return ok, drop
 
     async def update_queue(self):
+        # tick!
+        for serving in self.serving_queue:
+            serving.service_time += 1
+
         pending_ready, pending_wait = await self.split_pending_queue()
         serving_ok, serving_drop = await self.split_serving_queue()
 
