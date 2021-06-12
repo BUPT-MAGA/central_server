@@ -79,7 +79,7 @@ class Scheduler:
         pending_ready, pending_wait = await self.split_pending_queue()
         serving_ok, serving_drop = await self.split_serving_queue()
 
-        capacity = MAX_SERVING_LEN - len(serving_ok)
+        capacity = self._max_serving_len - len(serving_ok)
 
         start_service = pending_ready[capacity:]
         end_service = [x.check_in_id for x in serving_drop]
@@ -104,6 +104,8 @@ class Scheduler:
         self._status = CenterStatus.Off
         self._wind_mode = WindMode.Snow
         self._temperature = TEMP_DEFAULT[self._wind_mode]
+        self._max_serving_len = MAX_SERVING_LEN
+        self._unit_price = UNIT_PRICE
         # self.req_queue.clear()
 
     def now(self):
@@ -162,7 +164,7 @@ class Scheduler:
         for room in checkin_rooms:
             is_serving = self.is_serving(room.id)
             if is_serving:
-                new_fee = UNIT_PRICE*PRICE_TABLE[room.wind_speed]/60
+                new_fee = self._unit_price*PRICE_TABLE[room.wind_speed]/60
             else:
                 new_fee = 0.0
             await TempLog.new(room_id=room.id,
@@ -214,3 +216,25 @@ class Scheduler:
                     self.init_air()
         else:
             raise ValueError('Illegal center status value!')
+
+    @property
+    def max_serving_len(self):
+        return self._max_serving_len
+
+    @max_serving_len.setter
+    def max_serving_len(self, max_serving_len: int):
+        if isinstance(max_serving_len, int) and max_serving_len > 0:
+            self._max_serving_len = max_serving_len
+        else:
+            raise ValueError('Illegal max serving len!')
+
+    @property
+    def unit_price(self):
+        return self._unit_price
+
+    @unit_price.setter
+    def unit_price(self, unit_price: float):
+        if isinstance(unit_price, float) and unit_price > 0:
+            self._unit_price = unit_price
+        else:
+            raise ValueError('Illegal unit price!')
