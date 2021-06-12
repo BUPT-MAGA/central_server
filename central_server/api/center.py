@@ -8,7 +8,8 @@ from .body import *
 from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale
 from central_server.core import MyScheduler
 from central_server.utils import timestamp_to_tz
-from config import REPORT_SPAN
+from config import REPORT_SPAN, UNIT_PRICE, MAX_SERVING_LEN
+
 
 # TODO fix size rooms
 
@@ -64,6 +65,16 @@ def add_center_routes(app: FastAPI):
     @app.get('/api/list_checkin')
     async def list_checkin(token: str = Depends(oauth2_scheme)):
         return await CheckIn.list_all()
+
+    @app.get('/api/init')
+    async def init(token: str = Depends(oauth2_scheme)):
+        return {
+            'switch': True if MyScheduler.status == CenterStatus.On else False,
+            'mode': MyScheduler.wind_mode,
+            'temp': MyScheduler.temperature,
+            'fee': UNIT_PRICE,
+            'slave': MAX_SERVING_LEN
+        }
 
     @app.post('/api/checkin')
     async def check_in(checkin_req: CheckReq, token: str = Depends(oauth2_scheme)):
@@ -139,6 +150,11 @@ def add_center_routes(app: FastAPI):
             print(scale)
             res = await TempLog.report_hotel(timestamp_to_tz(timestamp), Scale(scale))
             print(res)
+            if len(res) == 0:
+                res = [{
+                    '120': [{'sum_fee': 0.2, 'open_cnt': 2, 'close_cnt': 2}]
+                }]
+
         except Exception as e:
             print(e)
             raise HTTPException(
@@ -148,11 +164,29 @@ def add_center_routes(app: FastAPI):
         return res
 
     @app.get('/api/report_room')
-    async def report_room(room_id: str, timestamp: int ,scale: int = 1, span: int = REPORT_SPAN, token: str = Depends(oauth2_scheme)):
+    async def report_room(room_id: str, timestamp: int, scale: int = 1, span: int = REPORT_SPAN,
+                          token: str = Depends(oauth2_scheme)):
         try:
-            print(scale)
-            res = await TempLog.report_room_span(room_id, timestamp_to_tz(timestamp), Scale(scale), span)
-            print(res)
+            # print(scale)
+            # res = await TempLog.report_room_span(room_id, timestamp_to_tz(timestamp), Scale(scale), span)
+            # print(res)
+            # if len(res) == 0:
+            res = {
+                12312312: {
+                    'spans': [
+                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+                         'wind': 3.0},
+                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+                         'wind': 3.0}], 'sum_fee': 3.0, 'open_cnt': 3, 'close_cnt': 3
+                },
+                12312512: {
+                    'spans': [
+                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+                         'wind': 3.0},
+                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+                         'wind': 3.0}], 'sum_fee': 3.0, 'open_cnt': 3, 'close_cnt': 3
+                }
+            }
         except Exception as e:
             print(e)
             raise HTTPException(
@@ -177,43 +211,59 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There's no such user.",
             )
+        # FIXME: mock
+        if len(res) == 0:
+            res = []
+            bill = {}
+            bill['room_id'] = '120'
+            bill['status'] = 1
+            bill['checkin_time'] = 112313
+            bill['fee'] = 1.0
+            res.append(bill)
         return res
 
     @app.get('/api/room_info')
     async def get_room_info(token: str = Depends(oauth2_scheme)):
         res: list = await Room.get_info()
+        # FIXME
         if res is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There's no rooms.",
             )
+        # FIXME: mock
+        if len(res) == 0:
+            res = []
+            info = {}
+            info['room_id'] = '2'
+            info['status'] = 1
+            info['user_id'] = '2'
+            res.append(info)
         return res
 
     @app.get('/api/room_status')
     async def get_room_status(token: str = Depends(oauth2_scheme)):
-        res: List[Room] = await Room.get_status()
+        res: List = await Room.get_status()
         if res is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There's no such room whose ac is open.",
             )
-        # res = [{
-        #     'room_id': '120',
-        #     'status': 1,
-        #     'wind_mode': 1,
-        #     'wind_speed': 1,
-        #     'current_temp': 20,
-        #     'target_temp': 25,
-        #     'served_time': 2,
-        #     'wait_time': 3
-        # },{
-        #     'room_id': '120',
-        #     'status': 1,
-        #     'wind_mode': 1,
-        #     'wind_speed': 1,
-        #     'current_temp': 20,
-        #     'target_temp': 25,
-        #     'served_time': 2,
-        #     'wait_time': 3
-        # }]
+        if len(res) == 0:
+            # FIXME: mock
+            res = [{
+                'room_id': '120',
+                'status': 1,
+                'wind_mode': 1,
+                'wind_speed': 1,
+                'current_temp': 20,
+                'target_temp': 25
+            }, {
+                'room_id': '120',
+                'status': 1,
+                'wind_mode': 1,
+                'wind_speed': 1,
+                'current_temp': 20,
+                'target_temp': 25
+            }]
         return res

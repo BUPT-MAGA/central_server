@@ -44,7 +44,7 @@ class TempLog(BaseModel):
         dates = SPAN_HANDLER[scale](date, span)
         report = {}
         for d in dates:
-            report[int(d.timestamp())] = TempLog.report_room(room_id, d, scale)
+            report[int(d.timestamp())] = await TempLog.report_room(room_id, d, scale)
         return report
 
     @staticmethod
@@ -52,7 +52,7 @@ class TempLog(BaseModel):
         DEFAULT_SPAN = {'start_time': 0, 'end_time': 0, 'start_temp': 0, 'end_temp': 0, 'fee': 0.0, 'wind': 0.0}
         ret = {'spans': [], 'sum_fee': 0.0, 'open_cnt': 0, 'close_cnt': 0}
         now_span = {}
-        logs: List[TempLog] = TempLog.get(room_id=room_id)
+        logs: List[TempLog] = await TempLog.get_all(room_id=room_id)
         scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log, date, scale), logs))
         for log in scaled_logs:
             if log.event_type == EventType.START:
