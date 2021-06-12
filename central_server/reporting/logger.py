@@ -19,12 +19,15 @@ class Logger(ABC):
     def error(self, *args):
         raise NotImplementedError(self.__name__ + '.error()')
 
+    def debug(self, *args):
+        raise NotImplementedError(self.__name__ + '.debug()')
+
 
 class ProperLogger(Logger):
     def __init__(self, name: str = 'DEFAULT', never_color: bool = False, silent_levels: set = None):
         self._name = name
         self.never_color = never_color
-        self.silent_levels = silent_levels if silent_levels is not None else set()
+        self.silent_levels = silent_levels if silent_levels is not None else {'debug'}
 
     @property
     def name(self) -> str:
@@ -58,6 +61,11 @@ class ProperLogger(Logger):
             return
         self.print(*args, color='green')
 
+    def debug(self, *args):
+        if 'debug' in self.silent_levels:
+            return
+        self.print(*args, color='blue')
+
 
 class ShutUpLogger(Logger):
     def __init__(self, *args, **kwargs):
@@ -79,7 +87,11 @@ class ShutUpLogger(Logger):
     def error(self, *args):
         pass
 
+    def debug(self, *args):
+        pass
+
 
 slave_api = ProperLogger(name='SLAVE_API')
-core_sched = ProperLogger(name='CORE_SCHED')
+center_api = ProperLogger(name='CENTER_API')
+core_sched = ProperLogger(name='CORE_SCHED', silent_levels=set())
 misc_info = ShutUpLogger(name='MISC')
