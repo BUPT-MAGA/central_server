@@ -36,10 +36,10 @@ def add_slave_routes(app: FastAPI):
         if room is None:
             slave_api.error(f'invalid room id: {check_in.room_id}')
             return
-        room.set.current_temp(cur_temp)
-        room.set.target_temp(tar_temp)
-        room.set.wind_mode(mode)
-        room.set.wind_speed(mode)
+        await room.set.current_temp(cur_temp)
+        await room.set.target_temp(tar_temp)
+        await room.set.wind_mode(mode)
+        await room.set.wind_speed(mode)
 
     # 待就绪状态下的入住房间，这些入住记录有如下特征：
     #   1. 已经上线并且完成了身份验证
