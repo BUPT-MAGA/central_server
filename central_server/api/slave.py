@@ -70,7 +70,7 @@ def add_slave_routes(app: FastAPI):
             'data': data
         })
 
-    @app.websocket('/ws')
+    @app.websocket('/ws/')
     async def handle_message(ws: WebSocket, room_id: str, user_id: str):
         print(f'[SLAVE/CONNECT] New connection with room_id={room_id}, user_id={user_id}')
         check_in = await CheckIn.check(room_id=room_id, user_id=user_id, status=CheckInStatus.CheckIn)
@@ -85,9 +85,12 @@ def add_slave_routes(app: FastAPI):
         pending_checkins.add(check_in.id)
         try:
             while True:
+                print(1)
                 message = await ws.receive_json()
+                print(message)
                 await distribute(check_in.id, message)
-        except WebSocketDisconnect:
+        except WebSocketDisconnect as e:
+            print(e)
             MyManager.disconnect(ws, check_in.id)
             await slave_offline(check_in.id)  # 记录 OFFLINE 事件
             if check_in.id in pending_checkins:
