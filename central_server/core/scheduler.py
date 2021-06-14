@@ -4,7 +4,7 @@ from time import time
 from config import *
 from central_server.models import WindMode, Room, CheckInStatus, TempLog, EventType, CheckIn, CenterStatus
 from central_server.reporting import core_sched
-from .queue import Queue
+# from .queue import Queue
 from central_server.api.conn_manager import MyManager
 
 Serving = namedtuple('Serving', ['check_in_id', 'service_time'])
@@ -21,8 +21,6 @@ class Scheduler:
         self.serving_queue: List[Serving] = []
 
     async def split_pending_queue(self):
-        core_sched.debug(f'split/pending: {self.pending_queue}')
-
         async def need_wind(check_in_id: int) -> bool:
             check_in: CheckIn = await CheckIn.get(check_in_id)
             core_sched.debug(f'   check_in = {check_in}')
@@ -36,14 +34,13 @@ class Scheduler:
         ready = []
         pending = []
         for check_in_id in self.pending_queue:
-            core_sched.debug(f'==> need_speed({check_in_id}) = ?')
+            core_sched.debug(f'==> need_wind({check_in_id}) = ?')
             need = await need_wind(check_in_id)
-            core_sched.debug(f'<== need_speed({check_in_id}) = {need}')
+            core_sched.debug(f'<== need_wind({check_in_id}) = {need}')
             if need:
                 ready.append(check_in_id)
             else:
                 pending.append(check_in_id)
-        core_sched.debug(f'split/pending: ready={ready}, pending={pending}')
         return ready, pending
 
     def remove_if_exists(self, check_in_id: int):
@@ -53,7 +50,7 @@ class Scheduler:
     async def split_serving_queue(self):
         async def temp_satisfied(serving: Serving) -> bool:
             check_in: CheckIn = await CheckIn.get(serving.check_in_id)
-            room: Room = await Room.get(check_in.id)
+            room: Room = await Room.get(check_in.room_id)
             if self.wind_mode == WindMode.Snow:
                 return room.current_temp <= room.target_temp
             else:
@@ -63,15 +60,21 @@ class Scheduler:
             return serving.service_time >= REQ_EXPIRED_TIME
 
         async def should_drop(serving: Serving) -> bool:
+            core_sched.debug(f'    ==> temp_satisified({serving}) = ?')
             b1 = await temp_satisfied(serving)
+            core_sched.debug(f'    <== temp_satisified({serving}) = {b1}')
+            core_sched.debug(f'    ==> swap_out({serving}) = ?')
             b2 = await swap_out(serving)
+            core_sched.debug(f'    <== swap_out({serving}) = {b1}')
 
             return b1 or b2
 
         ok = []
         drop = []
         for serving in self.serving_queue:
+            core_sched.debug(f'==> should_drop({serving}) = ?')
             need_drop = await should_drop(serving)
+            core_sched.debug(f'<== should_drop({serving}) = {need_drop}')
             if need_drop:
                 drop.append(serving)
             else:
@@ -80,21 +83,28 @@ class Scheduler:
 
     async def update_queue(self):
         # tick!
-        for serving in self.serving_queue:
-            serving.service_time += 1
+        def update_serving(serving: Serving):
+            next_time = serving.service_time + 1
+            next_serving = serving._replace(service_time=next_time)
+            return next_serving
+
+        self.serving_queue = [update_serving(x) for x in self.serving_queue]
 
         core_sched.debug(f'serving duration updated, current serving queue: {self.serving_queue}')
 
         pending_ready, pending_wait = await self.split_pending_queue()
+        core_sched.debug(f'pending queue splitted: ready={pending_ready}, wait={pending_wait}')
         serving_ok, serving_drop = await self.split_serving_queue()
+        core_sched.debug(f'serving queue splitted: cont={serving_ok}, drop={serving_drop}')
 
         capacity = self._max_serving_len - len(serving_ok)
+        core_sched.debug(f'capacity={capacity}')
 
-        start_service = pending_ready[capacity:]
+        start_service = pending_ready[:capacity]
         end_service = [x.check_in_id for x in serving_drop]
 
         next_pending = pending_ready[capacity:] + pending_wait + [x.check_in_id for x in serving_drop]
-        next_serving = serving_ok + [Serving(check_in_id=x, service_time=0) for x in pending_wait[:capacity]]
+        next_serving = serving_ok + [Serving(check_in_id=x, service_time=0) for x in pending_ready[:capacity]]
 
         self.pending_queue = next_pending
         self.serving_queue = next_serving
@@ -124,20 +134,24 @@ class Scheduler:
         return int(time())
 
     async def send_wind_status(self, check_in_id: int):
+        core_sched.debug(f'sending wind status to {check_in_id}')
         check_in = await CheckIn.get(check_in_id)
+        core_sched.debug(f'    check_in = {check_in}')
         room_id = check_in.room_id
         room = await Room.get(room_id)
+        core_sched.debug(f'    room = {room}')
         temp = self.temperature
         speed = room.wind_speed
         mode = self.wind_mode
-        cost = (await CheckIn.get(check_in.id)).fee
+        cost = check_in.fee
         data = {
             'temp': temp,
             'speed': speed,
             'mode': mode,
             'cost': cost
         }
-        ws = MyManager.active_connections[check_in]
+        ws = MyManager.active_connections[check_in.id]
+        core_sched.info(f'sending wind status -> {check_in_id}, data = {data}')
         await ws.send_json({
             'event_id': 3,
             'data': data
@@ -152,6 +166,7 @@ class Scheduler:
         core_sched.debug(
             f'updating service queue: current serving={self.serving_queue}, current pending={self.pending_queue}')
         start_service, end_service = await self.update_queue()
+        core_sched.debug(f'logging START for {start_service} ...')
         for start_id in start_service:
             check_in: CheckIn = await CheckIn.get(start_id)
             room: Room = await Room.get(check_in.room_id)
@@ -161,6 +176,8 @@ class Scheduler:
                               event_type=EventType.START,
                               current_temp=room.current_temp,
                               current_fee=0.0)
+        core_sched.debug(f'logging START for {start_service} ... DONE')
+        core_sched.debug(f'logging END for {start_service} ...')
         for end_id in end_service:
             check_in: CheckIn = await CheckIn.get(end_id)
             room: Room = await Room.get(check_in.room_id)
@@ -170,28 +187,38 @@ class Scheduler:
                               event_type=EventType.END,
                               current_temp=room.current_temp,
                               current_fee=0.0)
+        core_sched.debug(f'logging END for {start_service} ... DONE')
 
+        core_sched.debug(f'sending wind status to {start_service} ...')
         for serving in self.serving_queue:
             check_in_id = serving.check_in_id
             await self.send_wind_status(check_in_id)
+        core_sched.debug(f'sending wind status to {start_service} ... DONE')
 
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
+        core_sched.debug(f'computing fees for {checkin_rooms} ... ')
         for room in checkin_rooms:
+            core_sched.debug(f'==> Scheduler.is_serving({room.id}) = ?')
             is_serving = await self.is_serving(room.id)
+            core_sched.debug(f'<== Scheduler.is_serving({room.id}) = {is_serving}')
             if is_serving:
                 new_fee = self._unit_price * PRICE_TABLE[room.wind_speed] / 60
             else:
                 new_fee = 0.0
-            await TempLog.new(room_id=room.id,
-                              wind_speed=room.wind_speed,
-                              timestamp=int(time()),
-                              event_type=EventType.TEMP,
-                              current_temp=room.current_temp,
-                              current_fee=new_fee
-                              )
+            core_sched.debug(f'new fee = {new_fee}')
+            temp_log = await TempLog.new(room_id=room.id,
+                                         wind_speed=room.wind_speed,
+                                         timestamp=int(time()),
+                                         event_type=EventType.TEMP,
+                                         current_temp=room.current_temp,
+                                         current_fee=new_fee
+                                         )
+            core_sched.debug(f'temp log created = {temp_log}')
             check_in: CheckIn = await CheckIn.get_last(room_id=room.id, status=CheckInStatus.CheckIn)
+            core_sched.debug(f'check in = {check_in}')
             assert check_in is not None
-            await CheckIn.set.fee(check_in.fee + new_fee)
+            await check_in.set.fee(check_in.fee + new_fee)
+        core_sched.debug(f'computing fees for {checkin_rooms} ... DONE')
         # self.req_queue.tick()
 
     @property
