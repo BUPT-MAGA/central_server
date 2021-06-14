@@ -4,7 +4,7 @@ from central_server.models.my_types import WindMode, WindSpeed, Scale
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
-DB_PATH = 'db.json'
+DB_PATH = 'database.json'
 
 WORK_RATE = 1        # eg. work every 1 sec
 REQ_EXPIRED_TIME = 30       # drop too long service in queue

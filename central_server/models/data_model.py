@@ -1,6 +1,5 @@
 from typing import List
-from tinydb import Query
-from aiotinydb import AIOTinyDB
+from tinydb import Query, TinyDB
 
 import config
 
@@ -27,19 +26,19 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
         @staticmethod
         async def create(obj: cls) -> None:
-            async with AIOTinyDB(db_path) as db:
+            with TinyDB(db_path) as db:
                 db.table(data_name).insert(obj.dict())
                 return obj
 
         @staticmethod
         async def where(q) -> List[cls]:
-            async with AIOTinyDB(db_path) as db:
+            with TinyDB(db_path) as db:
                 res = db.table(data_name).search(q)
                 return [cls(**x) for x in res]
 
         @staticmethod
         async def get(pkey):
-            async with AIOTinyDB(db_path) as db:
+            with TinyDB(db_path) as db:
                 res = await cls.where(item[pkey_field] == pkey)
                 return None if len(res) == 0 else res[0]
 
@@ -55,7 +54,7 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
         @staticmethod
         async def list_all():
-            async with AIOTinyDB(db_path) as db:
+            with TinyDB(db_path) as db:
                 res = db.table(data_name).all()
                 return [cls(**x) for x in res]
 
@@ -78,19 +77,20 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
         @staticmethod
         async def update(field: str, value, q = None):
-            async with AIOTinyDB(db_path) as db:
-                db.table(data_name).update({field: value}) if q is None else db.table(data_name).update({field: value})
+            with TinyDB(db_path) as db:
+                db.table(data_name).update({field: value}) if q is None \
+                    else db.table(data_name).update({field: value}, q)
 
 
         @staticmethod
         async def exists(q):
-            async with AIOTinyDB(db_path) as db:
+            with TinyDB(db_path) as db:
                 res = db.table(data_name).search(q)
                 return len(res) > 0
 
 
         async def inc_pkey():
-            async with AIOTinyDB(db_path) as db:
+            with TinyDB(db_path) as db:
                 table = db.table('_primary_key')
                 q = Query().data_name == data_name
                 res = table.search(q)

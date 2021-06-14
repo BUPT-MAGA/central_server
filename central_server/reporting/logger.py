@@ -93,5 +93,5 @@ class ShutUpLogger(Logger):
 
 slave_api = ProperLogger(name='SLAVE_API')
 center_api = ProperLogger(name='CENTER_API')
-core_sched = ProperLogger(name='CORE_SCHED', silent_levels=set())
+core_sched = ShutUpLogger(name='CORE_SCHED', silent_levels=set())
 misc_info = ShutUpLogger(name='MISC')
