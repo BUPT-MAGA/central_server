@@ -37,10 +37,10 @@ dependencies:
   - wheel=0.36.2
   - yaml=0.2.5
   - pip:
-    - aiofiles==0.4.0
-    - aiotinydb==1.2.2
-    - fastapi-utils==0.2.1
-    - greenlet==1.1.0
-    - sqlalchemy==1.4.17
-    - tinydb==3.12.1
+      - aiofiles==0.4.0
+      - aiotinydb==1.2.2
+      - fastapi-utils==0.2.1
+      - greenlet==1.1.0
+      - sqlalchemy==1.4.17
+      - tinydb==3.12.1
 prefix: E:\Software\Anaconda\envs\air

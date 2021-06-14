@@ -46,18 +46,15 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
         async def filter(**kwargs):
             return await cls.where(build_filter(**kwargs))
 
-
         @staticmethod
         async def get_all(**kwargs):
             return await cls.where(build_query(**kwargs))
-
 
         @staticmethod
         async def list_all():
             with TinyDB(db_path) as db:
                 res = db.table(data_name).all()
                 return [cls(**x) for x in res]
-
 
         @staticmethod
         async def get_first(**kwargs):
@@ -76,18 +73,16 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
                 return res[-1]
 
         @staticmethod
-        async def update(field: str, value, q = None):
+        async def update(field: str, value, q=None):
             with TinyDB(db_path) as db:
                 db.table(data_name).update({field: value}) if q is None \
                     else db.table(data_name).update({field: value}, q)
-
 
         @staticmethod
         async def exists(q):
             with TinyDB(db_path) as db:
                 res = db.table(data_name).search(q)
                 return len(res) > 0
-
 
         async def inc_pkey():
             with TinyDB(db_path) as db:
@@ -102,11 +97,8 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
                     table.update({'value': pkey + 1}, q)
                     return pkey
 
-
-
         def pkey(self: cls):
             return getattr(self, pkey_field)
-
 
         @staticmethod
         async def new(**kwargs):
@@ -117,7 +109,6 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
             if await cls.get(data.pkey()) is not None:
                 raise RuntimeError(f'Can not create new {cls.__name__} with duplicated primary key {data.pkey()}')
             return await cls._create(data)
-
 
         async def update_field(self: cls, field: str, value):
             pkey = self.dict()[pkey_field]
@@ -131,6 +122,7 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
             def __getattr__(self, item):
                 async def func(value):
                     await self.data_self.update_field(item, value)
+
                 return func
 
         @property

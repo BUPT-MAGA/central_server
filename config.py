@@ -6,11 +6,11 @@ BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 DB_PATH = 'database.json'
 
-WORK_RATE = 1        # eg. work every 1 sec
-REQ_EXPIRED_TIME = 30       # drop too long service in queue
-TOKEN_EXPIRED_TIME = 100    # minutes
+WORK_RATE = 1  # eg. work every 1 sec
+REQ_EXPIRED_TIME = 30  # drop too long service in queue
+TOKEN_EXPIRED_TIME = 100  # minutes
 
-MAX_SERVING_LEN = 3         # capacity of serving queue
+MAX_SERVING_LEN = 3  # capacity of serving queue
 
 # temperature range for different modes
 TEMP_RANGE = {

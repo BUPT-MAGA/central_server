@@ -78,6 +78,7 @@ def check_scale(log: TempLog, now_date: datetime, scale: Scale):
     if scale == Scale.Day:
         return log_date.date() == now_date.date()
     elif scale == Scale.Week:
-        return abs((now_date - log_date).days) < 7 and (log_date.weekday() < now_date.weekday()) == (log_date < now_date)
+        return abs((now_date - log_date).days) < 7 and (log_date.weekday() < now_date.weekday()) == (
+                    log_date < now_date)
     else:
         return log_date.year == now_date.year and log_date.month == now_date.month

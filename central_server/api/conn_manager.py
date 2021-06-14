@@ -3,6 +3,7 @@ from fastapi import WebSocket
 
 from central_server.models.check_in import CheckIn
 
+
 class ConnectionManager:
     def __init__(self):
         # 存放激活的ws连接对象

@@ -7,7 +7,6 @@ from central_server.reporting import core_sched
 from .queue import Queue
 from central_server.api.conn_manager import MyManager
 
-
 Serving = namedtuple('Serving', ['check_in_id', 'service_time'])
 
 
@@ -144,14 +143,14 @@ class Scheduler:
             'data': data
         })
 
-
     async def tick(self):
         core_sched.debug('tick')
         if self._status == CenterStatus.Off:
             core_sched.debug('turned off, do nothing')
             # return
 
-        core_sched.debug(f'updating service queue: current serving={self.serving_queue}, current pending={self.pending_queue}')
+        core_sched.debug(
+            f'updating service queue: current serving={self.serving_queue}, current pending={self.pending_queue}')
         start_service, end_service = await self.update_queue()
         for start_id in start_service:
             check_in: CheckIn = await CheckIn.get(start_id)
@@ -180,7 +179,7 @@ class Scheduler:
         for room in checkin_rooms:
             is_serving = await self.is_serving(room.id)
             if is_serving:
-                new_fee = self._unit_price*PRICE_TABLE[room.wind_speed]/60
+                new_fee = self._unit_price * PRICE_TABLE[room.wind_speed] / 60
             else:
                 new_fee = 0.0
             await TempLog.new(room_id=room.id,

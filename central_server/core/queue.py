@@ -9,6 +9,7 @@ class ServiceStatus(Enum):
     Waiting = 1
     Serving = 2
 
+
 @dataclass
 class Service:
     room_id: str

@@ -5,6 +5,7 @@ from central_server.api.slave import add_slave_routes
 from central_server.core import MyScheduler
 from config import *
 
+
 def create_app():
     app = FastAPI()
     add_center_routes(app)

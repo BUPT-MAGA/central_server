@@ -9,7 +9,6 @@ from central_server.core import MyScheduler
 from central_server.core.queue import Service, ServiceStatus
 from central_server.reporting import slave_api
 
-
 from .conn_manager import MyManager
 
 

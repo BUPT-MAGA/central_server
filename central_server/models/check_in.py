@@ -20,7 +20,6 @@ class CheckIn(BaseModel):
     # Current fee
     fee: float = 0.0
 
-
     @staticmethod
     async def check(**kwargs):
         res = await CheckIn.get_first(**kwargs)

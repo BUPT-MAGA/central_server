@@ -36,7 +36,6 @@ class WindSpeed(IntEnum):
     Mid = 1
     High = 2
 
-
     def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self.value < other.value
