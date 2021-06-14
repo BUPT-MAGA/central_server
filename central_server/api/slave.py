@@ -71,6 +71,16 @@ def add_slave_routes(app: FastAPI):
             'data': data
         })
 
+    async def send_interval(check_in_id: int):
+        ws = MyManager.active_connections[check_in_id]
+        # FIXME use config.WORK_RATE
+        data = {'interval': 1000}
+        slave_api.info(f'sending interval -> {check_in_id}, data = {data}')
+        await ws.send_json({
+            'event_id': 6,
+            'data': data
+        })
+
     @app.websocket('/ws/')
     async def handle_message(ws: WebSocket, room_id: str, user_id: str):
         slave_api.info(f'New connection with room_id={room_id}, user_id={user_id}')
@@ -82,6 +92,7 @@ def add_slave_routes(app: FastAPI):
         await MyManager.connect(ws, check_in.id)
         slave_api.info(f'Valid authorization, connected')
         await send_status(check_in.id)
+        await send_interval(check_in.id)
         await slave_online(check_in.id)  # 记录 ONLINE 事件
         pending_checkins.add(check_in.id)
         try:
