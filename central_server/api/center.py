@@ -5,9 +5,10 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, decode_access_token
 from .body import *
-from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale
+from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale, WindSpeed
 from central_server.core import MyScheduler
 from central_server.utils import timestamp_to_tz
+from central_server.reporting import center_api
 from config import REPORT_SPAN, UNIT_PRICE, MAX_SERVING_LEN
 
 
@@ -76,6 +77,19 @@ def add_center_routes(app: FastAPI):
             'slave': MAX_SERVING_LEN
         }
 
+    async def db_create_room(room_id: str):
+        data = {
+            'id': room_id,
+            'status': CheckInStatus.CheckIn,
+            'wind_mode': WindMode.Snow,
+            'wind_speed': WindSpeed.Low,
+            'current_temp': 30,
+            'target_temp': 25,
+        }
+        res = await Room.new(**data)
+        center_api.info(f'room created: {res}')
+        return res
+
     @app.post('/api/checkin')
     async def check_in(checkin_req: CheckReq, token: str = Depends(oauth2_scheme)):
         room_id = checkin_req.room_id
@@ -90,6 +104,9 @@ def add_center_routes(app: FastAPI):
                                                   room_id=room_id,
                                                   checkin_time=int(time()))
         # TODO: new a room when a slave connection comes
+        room = await Room.get(room_id)
+        room = await db_create_room(room_id) if room is None else room
+        await room.set.status(CheckInStatus.CheckIn)
         return check_in_log.dict()
 
     @app.post('/api/checkout')
