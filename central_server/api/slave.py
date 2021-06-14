@@ -97,9 +97,8 @@ def add_slave_routes(app: FastAPI):
         pending_checkins.add(check_in.id)
         try:
             while True:
-                print(1)
                 message = await ws.receive_json()
-                print(message)
+                slave_api.info(f'receive message from {check_in.id}: {message}')
                 await distribute(check_in.id, message)
         except WebSocketDisconnect as e:
             print(e)
