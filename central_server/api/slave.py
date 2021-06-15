@@ -17,7 +17,7 @@ def add_slave_routes(app: FastAPI):
         pass
 
     async def slave_status_report(check_in_id: int, data: dict):
-        slave_api.info(f'check_in_id={check_in_id}, data={data}')
+        slave_api.info(f'status report: check_in_id={check_in_id}, data={data}')
         check_in = await CheckIn.get(check_in_id)
         cur_temp, tar_temp, mode, speed = [data[x] for x in ['cur_temp', 'tar_temp', 'mode', 'speed']]
 
@@ -37,8 +37,13 @@ def add_slave_routes(app: FastAPI):
             return
         await room.set.current_temp(cur_temp)
         await room.set.target_temp(tar_temp)
-        await room.set.wind_mode(mode)
-        await room.set.wind_speed(mode)
+        if mode in {0, 1}:
+            await room.set.wind_mode(mode)
+        else:
+            if check_in_id not in pending_checkins:
+                pending_checkins.add(check_in_id)
+                MyScheduler.remove_if_exists(check_in_id)
+        await room.set.wind_speed(speed)
 
     # 待就绪状态下的入住房间，这些入住记录有如下特征：
     #   1. 已经上线并且完成了身份验证
