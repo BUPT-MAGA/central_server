@@ -1,3 +1,6 @@
+import os
+import sys
+import traceback
 from datetime import datetime, timedelta
 from time import time
 from typing import List
@@ -207,55 +210,59 @@ def add_center_routes(app: FastAPI):
                           token: str = Depends(oauth2_scheme)):
         try:
             # print(scale)
-            # res = await TempLog.report_room_span(room_id, timestamp_to_tz(timestamp), Scale(scale), span)
-            # print(res)
+            res = await TempLog.report_room_span(room_id, timestamp_to_tz(timestamp), Scale(scale), span)
+            print(res)
             # if len(res) == 0:
-            res = {
-                1615651200: {
-                    'spans': [
-                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
-                         'wind': 3.0},
-                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
-                         'wind': 3.0}], 'sum_fee': 3.0, 'open_cnt': 3, 'close_cnt': 3
-                },
-                1618329600: {
-                    'spans': [
-                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
-                         'wind': 3.0},
-                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
-                         'wind': 3.0}], 'sum_fee': 4.0, 'open_cnt': 3, 'close_cnt': 3
-                },
-                1620921600: {
-                    'spans': [
-                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
-                         'wind': 3.0},
-                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
-                         'wind': 3.0}], 'sum_fee': 19.0, 'open_cnt': 3, 'close_cnt': 3
-                },
-                1623600000: {
-                    'spans': [
-                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
-                         'wind': 3.0},
-                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
-                         'wind': 3.0}], 'sum_fee': 2.0, 'open_cnt': 3, 'close_cnt': 3
-                },
-                1626192000: {
-                    'spans': [
-                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
-                         'wind': 3.0},
-                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
-                         'wind': 3.0}], 'sum_fee': 10.0, 'open_cnt': 3, 'close_cnt': 3
-                },
-                1628870400: {
-                    'spans': [
-                        {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
-                         'wind': 3.0},
-                        {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
-                         'wind': 3.0}], 'sum_fee': 3.0, 'open_cnt': 3, 'close_cnt': 3
-                }
-            }
+            # res = {
+            #     1615651200: {
+            #         'spans': [
+            #             {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+            #              'wind': 3.0},
+            #             {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+            #              'wind': 3.0}], 'sum_fee': 3.0, 'open_cnt': 3, 'close_cnt': 3
+            #     },
+            #     1618329600: {
+            #         'spans': [
+            #             {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+            #              'wind': 3.0},
+            #             {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+            #              'wind': 3.0}], 'sum_fee': 4.0, 'open_cnt': 3, 'close_cnt': 3
+            #     },
+            #     1620921600: {
+            #         'spans': [
+            #             {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+            #              'wind': 3.0},
+            #             {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+            #              'wind': 3.0}], 'sum_fee': 19.0, 'open_cnt': 3, 'close_cnt': 3
+            #     },
+            #     1623600000: {
+            #         'spans': [
+            #             {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+            #              'wind': 3.0},
+            #             {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+            #              'wind': 3.0}], 'sum_fee': 2.0, 'open_cnt': 3, 'close_cnt': 3
+            #     },
+            #     1626192000: {
+            #         'spans': [
+            #             {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+            #              'wind': 3.0},
+            #             {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+            #              'wind': 3.0}], 'sum_fee': 10.0, 'open_cnt': 3, 'close_cnt': 3
+            #     },
+            #     1628870400: {
+            #         'spans': [
+            #             {'start_time': 12312312, 'end_time': 12312512, 'start_temp': 20, 'end_temp': 25, 'fee': 4.0,
+            #              'wind': 3.0},
+            #             {'start_time': 12312612, 'end_time': 12312712, 'start_temp': 22, 'end_temp': 25, 'fee': 3.0,
+            #              'wind': 3.0}], 'sum_fee': 3.0, 'open_cnt': 3, 'close_cnt': 3
+            #     }
+            # }
         except Exception as e:
             print(e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            traceback.print_exc()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The scale is illegal",
