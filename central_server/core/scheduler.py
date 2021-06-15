@@ -22,14 +22,15 @@ class Scheduler:
 
     async def split_pending_queue(self):
         async def need_wind(check_in_id: int) -> bool:
-            check_in: CheckIn = await CheckIn.get(check_in_id)
-            core_sched.debug(f'   check_in = {check_in}')
-            room: Room = await Room.get(check_in.room_id)
-            core_sched.debug(f'   room = {room}')
-            if self.wind_mode == WindMode.Snow:
-                return room.current_temp > room.target_temp
-            else:
-                return room.current_temp < room.target_temp
+            return True
+            # check_in: CheckIn = await CheckIn.get(check_in_id)
+            # core_sched.debug(f'   check_in = {check_in}')
+            # room: Room = await Room.get(check_in.room_id)
+            # core_sched.debug(f'   room = {room}')
+            # if self.wind_mode == WindMode.Snow:
+            #     return room.current_temp > room.target_temp
+            # else:
+            #     return room.current_temp < room.target_temp
 
         ready = []
         pending = []
@@ -43,21 +44,29 @@ class Scheduler:
                 pending.append(check_in_id)
         return ready, pending
 
+    def add(self, check_in_id: int):
+        b1 = check_in_id in self.pending_queue
+        b2 = check_in_id in [x.check_in_id for x in self.serving_queue]
+        if b1 or b2:
+            return
+        self.pending_queue.append(check_in_id)
+
     def remove_if_exists(self, check_in_id: int):
         self.pending_queue = [x for x in self.pending_queue if x != check_in_id]
         self.serving_queue = [x for x in self.serving_queue if x.check_in_id != check_in_id]
 
     async def split_serving_queue(self):
         async def temp_satisfied(serving: Serving) -> bool:
-            check_in: CheckIn = await CheckIn.get(serving.check_in_id)
-            room: Room = await Room.get(check_in.room_id)
-            if self.wind_mode == WindMode.Snow:
-                return room.current_temp <= room.target_temp
-            else:
-                return room.current_temp >= room.target_temp
+            return False
+            # check_in: CheckIn = await CheckIn.get(serving.check_in_id)
+            # room: Room = await Room.get(check_in.room_id)
+            # if self.wind_mode == WindMode.Snow:
+            #     return room.current_temp <= room.target_temp
+            # else:
+            #     return room.current_temp >= room.target_temp
 
         async def swap_out(serving: Serving) -> bool:
-            return serving.service_time >= REQ_EXPIRED_TIME
+            return serving.service_time > REQ_EXPIRED_TIME
 
         async def should_drop(serving: Serving) -> bool:
             core_sched.debug(f'    ==> temp_satisified({serving}) = ?')
@@ -93,12 +102,12 @@ class Scheduler:
         core_sched.debug(f'serving duration updated, current serving queue: {self.serving_queue}')
 
         pending_ready, pending_wait = await self.split_pending_queue()
-        core_sched.debug(f'pending queue splitted: ready={pending_ready}, wait={pending_wait}')
+        core_sched.info(f'pending queue splitted: ready={pending_ready}, wait={pending_wait}')
         serving_ok, serving_drop = await self.split_serving_queue()
-        core_sched.debug(f'serving queue splitted: cont={serving_ok}, drop={serving_drop}')
+        core_sched.info(f'serving queue splitted: cont={serving_ok}, drop={serving_drop}')
 
         capacity = self._max_serving_len - len(serving_ok)
-        core_sched.debug(f'capacity={capacity}')
+        core_sched.info(f'capacity={capacity}')
 
         start_service = pending_ready[:capacity]
         end_service = [x.check_in_id for x in serving_drop]
@@ -110,7 +119,7 @@ class Scheduler:
         self.serving_queue = next_serving
 
         core_sched.info(f'queue updated, started={start_service}, ended={end_service}, now pending={next_pending}, '
-                        f'now serving={next_serving}')
+                        f'now serving={[f"{x.check_in_id} :- {x.service_time}" for x in self.serving_queue]}')
 
         return start_service, end_service
 
