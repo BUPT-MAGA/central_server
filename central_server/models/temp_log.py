@@ -26,12 +26,13 @@ class TempLog(BaseModel):
         for log in scaled_logs:
             if log.room_id not in ret.keys():
                 ret[log.room_id] = {'sum_fee': 0.0, 'open_cnt': 0, 'close_cnt': 0}
-            if log.event_type == EventType.START:
+            if log.event_type == EventType.ONLINE:
                 ret[log.room_id]['open_cnt'] += 1
             else:
                 ret[log.room_id]['sum_fee'] += log.current_fee
-                if log.event_type == EventType.END:
+                if log.event_type == EventType.OFFLINE:
                     ret[log.room_id]['close_cnt'] += 1
+        ret = [{'room_id': r, 'sum_fee': ret[r]['sum_fee'], 'open_cnt': ret[r]['open_cnt'], 'close_cnt': ret[r]['close_cnt']} for r in ret]
         return ret
 
     @staticmethod
@@ -42,39 +43,51 @@ class TempLog(BaseModel):
             Scale.Month: construct_months,
         }
         dates = SPAN_HANDLER[scale](date, span)
+        print(dates)
         report = {}
         for d in dates:
+            print(d)
             report[int(d.timestamp())] = await TempLog.report_room(room_id, d, scale)
+            print(report)
         return report
 
     @staticmethod
     async def report_room(room_id: str, date: datetime, scale: Scale):
         DEFAULT_SPAN = {'start_time': 0, 'end_time': 0, 'start_temp': 0, 'end_temp': 0, 'fee': 0.0, 'wind': 0.0}
         ret = {'spans': [], 'sum_fee': 0.0, 'open_cnt': 0, 'close_cnt': 0}
-        now_span = {}
+        now_span = DEFAULT_SPAN
         logs: List[TempLog] = await TempLog.get_all(room_id=room_id)
-        scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log, date, scale), logs))
+        scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log.timestamp, date, scale), logs))
+        is_started = False
         for log in scaled_logs:
-            if log.event_type == EventType.START:
+            if log.event_type in (EventType.ONLINE, EventType.OFFLINE):
+                continue
+            elif log.event_type == EventType.START:
+                is_started = True
                 now_span = DEFAULT_SPAN
                 now_span['start_time'] = log.timestamp
                 now_span['start_temp'] = log.current_temp
                 ret['open_cnt'] += 1
-            else:
+            elif is_started and log.event_type == EventType.END:
+                assert now_span['start_time'] != 0
+                now_span['end_time'] = log.timestamp
+                now_span['end_temp'] = log.current_temp
+                ret['close_cnt'] += 1
+                ret['spans'].append(now_span)
+                now_span = DEFAULT_SPAN
+                is_started = False
+            elif is_started:
+                if date.day == 15:
+                    print(log)
                 now_span['fee'] += log.current_fee
                 now_span['wind'] += PRICE_TABLE[log.wind_speed]
                 ret['sum_fee'] += log.current_fee
-                if log.event_type == EventType.END:
-                    assert now_span['start_time'] != 0
-                    now_span['end_time'] = log.timestamp
-                    now_span['end_temp'] = log.current_temp
-                    ret['close_cnt'] += 1
-                    ret['spans'].append(now_span[log.room_id])
+
         return ret
 
 
-def check_scale(log: TempLog, now_date: datetime, scale: Scale):
-    log_date = timestamp_to_tz(log.timestamp)
+def check_scale(log_timestamp: int, now_date: datetime, scale: Scale):
+    log_date = timestamp_to_tz(log_timestamp)
     if scale == Scale.Day:
         return log_date.date() == now_date.date()
     elif scale == Scale.Week:
