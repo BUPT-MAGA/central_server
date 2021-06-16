@@ -26,7 +26,7 @@ class Room(BaseModel):
             info['status'] = room.status
             if room.status == CheckInStatus.CheckIn:
                 try:
-                    checkin: CheckIn = CheckIn.get_last()
+                    checkin: CheckIn = await CheckIn.get_last(room_id=room.id)
                     assert checkin.status == room.status
                 except:
                     print('Incorrect join between Room and Checkin!')
