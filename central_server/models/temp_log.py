@@ -57,7 +57,7 @@ class TempLog(BaseModel):
         scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log.timestamp, date, scale), logs))
         for log in scaled_logs:
             # print(log.dict())
-            if log.event_type in (EventType.ONLINE, EventType.OFFLINE):
+            if log.event_type in (EventType.ONLINE, EventType.OFFLINE) or log.current_fee <= 0:
                 continue
             elif log.event_type == EventType.START:
                 now_span = DEFAULT_SPAN.copy()
