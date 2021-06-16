@@ -179,7 +179,7 @@ class Scheduler:
         core_sched.debug('tick')
         if self._status == CenterStatus.Off:
             core_sched.debug('turned off, do nothing')
-            # return
+            return
 
         core_sched.debug(
             f'updating service queue: current serving={self.serving_queue}, current pending={self.pending_queue}')
