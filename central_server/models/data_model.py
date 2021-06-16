@@ -79,9 +79,9 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
                     else db.table(data_name).update({field: value}, q)
 
         @staticmethod
-        async def exists(q):
+        async def exists(**kwargs):
             with TinyDB(db_path) as db:
-                res = db.table(data_name).search(q)
+                res = await cls.where(build_query(**kwargs))
                 return len(res) > 0
 
         async def inc_pkey():
