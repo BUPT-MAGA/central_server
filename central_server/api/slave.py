@@ -113,8 +113,8 @@ def add_slave_routes(app: FastAPI):
             # 有内鬼，终止交易！
             return
         if check_in.id in MyManager.active_connections:
-            ws = MyManager.active_connections[check_in.id]
-            await ws.close()
+            prev_ws = MyManager.active_connections[check_in.id]
+            await prev_ws.close()
         await MyManager.connect(ws, check_in.id)
         slave_api.info(f'<-> valid authorization, connected: room_id={room_id}, user_id={user_id}, check in {check_in.id}')
         await send_status(check_in.id)
