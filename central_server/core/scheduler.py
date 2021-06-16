@@ -151,6 +151,9 @@ class Scheduler:
         core_sched.debug(f'    room = {room}')
         temp = self.temperature
         speed = room.wind_speed
+        is_serving = await self.is_serving(room_id)
+        if not is_serving:
+            speed = -1
         mode = self.wind_mode
         cost = check_in.fee
         data = {
@@ -160,7 +163,7 @@ class Scheduler:
             'cost': cost
         }
         ws = MyManager.active_connections[check_in.id]
-        core_sched.info(f'sending wind status -> {check_in_id}, data = {data}')
+        core_sched.info(f'->> sending wind status to {check_in_id}, data = {data}')
         await ws.send_json({
             'event_id': 3,
             'data': data
@@ -199,10 +202,12 @@ class Scheduler:
         core_sched.debug(f'logging END for {start_service} ... DONE')
 
         core_sched.debug(f'sending wind status to {start_service} ...')
-        for serving in self.serving_queue:
-            check_in_id = serving.check_in_id
+        for check_in_id in MyManager.active_connections.keys():
             await self.send_wind_status(check_in_id)
-        core_sched.debug(f'sending wind status to {start_service} ... DONE')
+        # for serving in self.serving_queue:
+        #     check_in_id = serving.check_in_id
+        #     await self.send_wind_status(check_in_id)
+        core_sched.debug(f'sending wind status ... DONE')
 
         checkin_rooms = await Room.get_all(status=CheckInStatus.CheckIn)
         core_sched.debug(f'computing fees for {checkin_rooms} ... ')
