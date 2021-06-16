@@ -57,22 +57,22 @@ class TempLog(BaseModel):
         scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log.timestamp, date, scale), logs))
         for log in scaled_logs:
             # print(log.dict())
-            if log.event_type in (EventType.ONLINE, EventType.OFFLINE) or log.current_fee <= 0:
+            if log.event_type in (EventType.ONLINE, EventType.OFFLINE):
                 continue
             elif log.event_type == EventType.START:
+                print(log.dict())
                 now_span = DEFAULT_SPAN.copy()
                 now_span['start_time'] = log.timestamp
                 now_span['start_temp'] = log.current_temp
                 ret['open_cnt'] += 1
-            elif log.event_type == EventType.END and log.timestamp >= now_span['start_time']:
-                assert now_span['start_time'] != 0
+            elif log.event_type == EventType.END and now_span['start_time'] > 0 and log.timestamp >= now_span['start_time'] and now_span['fee'] > 0:
                 now_span['end_time'] = log.timestamp
                 now_span['end_temp'] = log.current_temp
                 print(now_span)
                 ret['close_cnt'] += 1
                 ret['spans'].append(now_span)
                 now_span = DEFAULT_SPAN.copy()
-            else:
+            elif log.current_fee > 0:
                 now_span['fee'] += log.current_fee
                 now_span['wind'] += PRICE_TABLE[log.wind_speed]
                 ret['sum_fee'] += log.current_fee
