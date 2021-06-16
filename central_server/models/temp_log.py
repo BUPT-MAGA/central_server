@@ -55,31 +55,26 @@ class TempLog(BaseModel):
         ret = {'spans': [], 'sum_fee': 0.0, 'open_cnt': 0, 'close_cnt': 0}
         now_span = DEFAULT_SPAN
         scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log.timestamp, date, scale), logs))
-        is_started = False
         for log in scaled_logs:
+            print(log.dict())
             if log.event_type in (EventType.ONLINE, EventType.OFFLINE):
                 continue
             elif log.event_type == EventType.START:
-                is_started = True
                 now_span = DEFAULT_SPAN
                 now_span['start_time'] = log.timestamp
                 now_span['start_temp'] = log.current_temp
                 ret['open_cnt'] += 1
-            elif is_started and log.event_type == EventType.END:
+            elif log.event_type == EventType.END and log.timestamp >= now_span['start_time']:
                 assert now_span['start_time'] != 0
                 now_span['end_time'] = log.timestamp
                 now_span['end_temp'] = log.current_temp
                 ret['close_cnt'] += 1
                 ret['spans'].append(now_span)
                 now_span = DEFAULT_SPAN
-                is_started = False
-            elif is_started:
-                if date.day == 15:
-                    print(log)
+            else:
                 now_span['fee'] += log.current_fee
                 now_span['wind'] += PRICE_TABLE[log.wind_speed]
                 ret['sum_fee'] += log.current_fee
-        # return {}
         return ret
 
 
