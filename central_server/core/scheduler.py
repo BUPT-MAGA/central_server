@@ -184,28 +184,28 @@ class Scheduler:
         core_sched.debug(
             f'updating service queue: current serving={self.serving_queue}, current pending={self.pending_queue}')
         start_service, end_service = await self.update_queue()
-        core_sched.debug(f'logging START for {start_service} ...')
-        for start_id in start_service:
-            check_in: CheckIn = await CheckIn.get(start_id)
-            room: Room = await Room.get(check_in.room_id)
-            await TempLog.new(room_id=check_in.room_id,
-                              wind_speed=None,
-                              timestamp=self.now(),
-                              event_type=EventType.START,
-                              current_temp=room.current_temp,
-                              current_fee=0.0)
-        core_sched.debug(f'logging START for {start_service} ... DONE')
-        core_sched.debug(f'logging END for {start_service} ...')
-        for end_id in end_service:
-            check_in: CheckIn = await CheckIn.get(end_id)
-            room: Room = await Room.get(check_in.room_id)
-            await TempLog.new(room_id=check_in.room_id,
-                              wind_speed=None,
-                              timestamp=self.now(),
-                              event_type=EventType.END,
-                              current_temp=room.current_temp,
-                              current_fee=0.0)
-        core_sched.debug(f'logging END for {start_service} ... DONE')
+        # core_sched.debug(f'logging START for {start_service} ...')
+        # for start_id in start_service:
+        #     check_in: CheckIn = await CheckIn.get(start_id)
+        #     room: Room = await Room.get(check_in.room_id)
+        #     await TempLog.new(room_id=check_in.room_id,
+        #                       wind_speed=None,
+        #                       timestamp=self.now(),
+        #                       event_type=EventType.START,
+        #                       current_temp=room.current_temp,
+        #                       current_fee=0.0)
+        # core_sched.debug(f'logging START for {start_service} ... DONE')
+        # core_sched.debug(f'logging END for {start_service} ...')
+        # for end_id in end_service:
+        #     check_in: CheckIn = await CheckIn.get(end_id)
+        #     room: Room = await Room.get(check_in.room_id)
+        #     await TempLog.new(room_id=check_in.room_id,
+        #                       wind_speed=None,
+        #                       timestamp=self.now(),
+        #                       event_type=EventType.END,
+        #                       current_temp=room.current_temp,
+        #                       current_fee=0.0)
+        # core_sched.debug(f'logging END for {start_service} ... DONE')
 
         core_sched.debug(f'sending wind status to {start_service} ...')
         for check_in_id in MyManager.active_connections.keys():
