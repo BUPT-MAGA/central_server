@@ -316,6 +316,16 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There's no such room whose ac is open.",
             )
+
+        next_res = []
+        for x in res:
+            x = x.dict()
+            room_id = x['id']
+            is_serving = await MyScheduler.is_serving(room_id)
+            if not is_serving:
+                x['wind_speed'] = -1
+            next_res.append(x)
+
         # if len(res) == 0:
         #     FIXME: mock
             # res = [{
@@ -333,4 +343,4 @@ def add_center_routes(app: FastAPI):
             #     'current_temp': 20,
             #     'target_temp': 25
             # }]
-        return res
+        return next_res
