@@ -17,7 +17,8 @@ class ConnectionManager:
 
     def disconnect(self, ws: WebSocket, check_in_id: int):
         # 关闭时 移除ws对象
-        self.active_connections.pop(check_in_id)
+        if check_in_id in self.active_connections:
+            self.active_connections.pop(check_in_id)
 
     @staticmethod
     async def send_personal_message(message: str, ws: WebSocket):

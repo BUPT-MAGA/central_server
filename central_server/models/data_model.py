@@ -1,5 +1,6 @@
 from typing import List
 from tinydb import Query, TinyDB
+from central_server.models.db import get_db
 
 import config
 
@@ -26,21 +27,21 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
         @staticmethod
         async def create(obj: cls) -> None:
-            with TinyDB(db_path) as db:
-                db.table(data_name).insert(obj.dict())
-                return obj
+            db = get_db()
+            db.table(data_name).insert(obj.dict())
+            return obj
 
         @staticmethod
         async def where(q) -> List[cls]:
-            with TinyDB(db_path) as db:
-                res = db.table(data_name).search(q)
-                return [cls(**x) for x in res]
+            db = get_db()
+            res = db.table(data_name).search(q)
+            return [cls(**x) for x in res]
 
         @staticmethod
         async def get(pkey):
-            with TinyDB(db_path) as db:
-                res = await cls.where(item[pkey_field] == pkey)
-                return None if len(res) == 0 else res[0]
+            db = get_db()
+            res = await cls.where(item[pkey_field] == pkey)
+            return None if len(res) == 0 else res[0]
 
         @staticmethod
         async def filter(**kwargs):
@@ -52,9 +53,9 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
         @staticmethod
         async def list_all():
-            with TinyDB(db_path) as db:
-                res = db.table(data_name).all()
-                return [cls(**x) for x in res]
+            db = get_db()
+            res = db.table(data_name).all()
+            return [cls(**x) for x in res]
 
         @staticmethod
         async def get_first(**kwargs):
@@ -74,28 +75,27 @@ def DataModel(pkey_field: str, auto_inc: bool = False):
 
         @staticmethod
         async def update(field: str, value, q=None):
-            with TinyDB(db_path) as db:
-                db.table(data_name).update({field: value}) if q is None \
-                    else db.table(data_name).update({field: value}, q)
+            db = get_db()
+            db.table(data_name).update({field: value}) if q is None \
+                else db.table(data_name).update({field: value}, q)
 
         @staticmethod
         async def exists(**kwargs):
-            with TinyDB(db_path) as db:
-                res = await cls.where(build_query(**kwargs))
-                return len(res) > 0
+            res = await cls.where(build_query(**kwargs))
+            return len(res) > 0
 
         async def inc_pkey():
-            with TinyDB(db_path) as db:
-                table = db.table('_primary_key')
-                q = Query().data_name == data_name
-                res = table.search(q)
-                if len(res) == 0:
-                    table.insert({'data_name': data_name, 'value': 1})
-                    return 0
-                else:
-                    pkey = res[0]['value']
-                    table.update({'value': pkey + 1}, q)
-                    return pkey
+            db = get_db()
+            table = db.table('_primary_key')
+            q = Query().data_name == data_name
+            res = table.search(q)
+            if len(res) == 0:
+                table.insert({'data_name': data_name, 'value': 1})
+                return 0
+            else:
+                pkey = res[0]['value']
+                table.update({'value': pkey + 1}, q)
+                return pkey
 
         def pkey(self: cls):
             return getattr(self, pkey_field)
