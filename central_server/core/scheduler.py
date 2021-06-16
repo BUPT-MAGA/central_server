@@ -15,6 +15,7 @@ class Scheduler:
     def __init__(self):
         # set default mode
         # self.req_queue = Queue(REQ_EXPIRED_TIME, MAX_SERVING_LEN)
+        self._status = CenterStatus.Off
         self.init_air()
 
         self.pending_queue: List[int] = []
@@ -137,7 +138,7 @@ class Scheduler:
         return False
 
     def init_air(self):
-        self._status = CenterStatus.Off
+        # self._status = CenterStatus.Off
         self._wind_mode = WindMode.Snow
         self._temperature = TEMP_DEFAULT[self._wind_mode]
         self._max_serving_len = MAX_SERVING_LEN
@@ -273,6 +274,7 @@ class Scheduler:
         if isinstance(status, CenterStatus):
             if self._status != status:
                 self._status = status
+                print(self._status)
                 if self._status == CenterStatus.On:
                     self.init_air()
         else:
