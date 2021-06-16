@@ -44,6 +44,11 @@ class Scheduler:
                 pending.append(check_in_id)
         return ready, pending
 
+    def exists(self, check_in_id: int):
+        b1 = check_in_id in self.pending_queue
+        b2 = check_in_id in [x.check_in_id for x in self.serving_queue]
+        return b1 or b2
+
     def add(self, check_in_id: int):
         b1 = check_in_id in self.pending_queue
         b2 = check_in_id in [x.check_in_id for x in self.serving_queue]

@@ -18,7 +18,7 @@ def add_slave_routes(app: FastAPI):
 
     async def slave_status_report(check_in_id: int, data: dict):
         slave_api.info(f'<<- status report {check_in_id}: {data}')
-        check_in = await CheckIn.get(check_in_id)
+        check_in: CheckIn = await CheckIn.get(check_in_id)
         cur_temp, tar_temp, mode, speed = [data[x] for x in ['cur_temp', 'tar_temp', 'mode', 'speed']]
 
         # if check_in_id in pending_checkins:
@@ -38,9 +38,24 @@ def add_slave_routes(app: FastAPI):
         await room.set.current_temp(cur_temp)
         await room.set.target_temp(tar_temp)
         if mode in {0, 1}:
-            MyScheduler.add(check_in_id)
+            if not MyScheduler.exists(check_in_id):
+                MyScheduler.add(check_in_id)
+                await TempLog.new(room_id=check_in.room_id,
+                                  wind_speed=room.wind_speed,
+                                  timestamp=MyScheduler.now(),
+                                  event_type=EventType.START,
+                                  current_temp=room.current_temp,
+                                  current_fee=check_in.fee)
+
             await room.set.wind_mode(mode)
         else:
+            if MyScheduler.exists():
+                await TempLog.new(room_id=check_in.room_id,
+                                  wind_speed=room.wind_speed,
+                                  timestamp=MyScheduler.now(),
+                                  event_type=EventType.END,
+                                  current_temp=room.current_temp,
+                                  current_fee=check_in.fee)
             MyScheduler.remove_if_exists(check_in_id)
             # if check_in_id not in pending_checkins:
             #     pending_checkins.add(check_in_id)
