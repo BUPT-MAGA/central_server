@@ -6,6 +6,8 @@ from time import time
 from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
+from central_server.api.conn_manager import MyManager
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, decode_access_token
 from .body import *
 from central_server.models import Admin, CheckIn, CheckInStatus, WindMode, Room, CenterStatus, TempLog, Scale, WindSpeed
@@ -321,9 +323,20 @@ def add_center_routes(app: FastAPI):
         for x in res:
             x = x.dict()
             room_id = x['id']
+
+            # pack serving status
             is_serving = await MyScheduler.is_serving(room_id)
             if not is_serving:
                 x['wind_speed'] = -1
+
+            # pack connecetion status
+            check_in1: CheckIn = await CheckIn.get_last(room_id=room_id)
+            if check_in1 is None:
+                x['is_online'] = False
+            else:
+                check_in_id = check_in1.id
+                x['is_online'] = check_in_id in MyManager.active_connections
+
             next_res.append(x)
 
         # if len(res) == 0:
