@@ -49,7 +49,7 @@ def add_slave_routes(app: FastAPI):
 
             await room.set.wind_mode(mode)
         else:
-            if MyScheduler.exists():
+            if MyScheduler.exists(check_in_id):
                 await TempLog.new(room_id=check_in.room_id,
                                   wind_speed=room.wind_speed,
                                   timestamp=MyScheduler.now(),
