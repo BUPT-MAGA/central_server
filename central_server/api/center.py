@@ -124,7 +124,7 @@ def add_center_routes(app: FastAPI):
             )
         await check.set.checkout_time(int(time()))
         await check.set.status(CheckInStatus.CheckOut)
-        room = await Room.get_first(room_id=check.room_id)
+        room = await Room.get(check.room_id)
         if room is not None:
             await room.set.status(CheckInStatus.CheckOut)
         return check.dict()
@@ -192,10 +192,6 @@ def add_center_routes(app: FastAPI):
             print(scale)
             res = await TempLog.report_hotel(timestamp_to_tz(timestamp), Scale(scale))
             print(res)
-            if len(res) == 0:
-                res = [{
-                    '120': [{'sum_fee': 0.2, 'open_cnt': 2, 'close_cnt': 2}]
-                }]
 
         except Exception as e:
             print(e)
@@ -209,9 +205,14 @@ def add_center_routes(app: FastAPI):
     async def report_room(room_id: str, timestamp: int, scale: int = 1, span: int = REPORT_SPAN,
                           token: str = Depends(oauth2_scheme)):
         try:
-            # print(scale)
+            # is_room = await Room.exists(id=room_id)
+            # if not is_room:
+            #     print(is_room)
+            #     raise HTTPException(
+            #         status_code=status.HTTP_409_CONFLICT,
+            #         detail="The room doesn't exist",
+            #     )
             res = await TempLog.report_room_span(room_id, timestamp_to_tz(timestamp), Scale(scale), span)
-            print(res)
             # if len(res) == 0:
             # res = {
             #     1615651200: {
@@ -267,14 +268,6 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The scale is illegal",
             )
-        # res = {
-        #     '120': {
-        #         'spans': [{'start_time': 0, 'end_time': 0, 'start_temp': 0, 'end_temp': 0, 'fee': 0.0, 'wind': 0.0}],
-        #         'open_cnt': 0,
-        #         'close_cnt': 0,
-        #         'sum_fee': 0.0
-        #     }
-        # }
         return res
 
     @app.get('/api/bill')
@@ -286,14 +279,14 @@ def add_center_routes(app: FastAPI):
                 detail="There's no such user.",
             )
         # FIXME: mock
-        if len(res) == 0:
-            res = []
-            bill = {}
-            bill['room_id'] = '120'
-            bill['status'] = 1
-            bill['checkin_time'] = 112313
-            bill['fee'] = 1.0
-            res.append(bill)
+        # if len(res) == 0:
+        #     res = []
+        #     bill = {}
+        #     bill['room_id'] = '120'
+        #     bill['status'] = 1
+        #     bill['checkin_time'] = 112313
+        #     bill['fee'] = 1.0
+        #     res.append(bill)
         return res
 
     @app.get('/api/room_info')
@@ -306,13 +299,13 @@ def add_center_routes(app: FastAPI):
                 detail="There's no rooms.",
             )
         # FIXME: mock
-        if len(res) == 0:
-            res = []
-            info = {}
-            info['room_id'] = '2'
-            info['status'] = 1
-            info['user_id'] = '2'
-            res.append(info)
+        # if len(res) == 0:
+        #     res = []
+        #     info = {}
+        #     info['room_id'] = '2'
+        #     info['status'] = 1
+        #     info['user_id'] = '2'
+        #     res.append(info)
         return res
 
     @app.get('/api/room_status')
@@ -323,21 +316,21 @@ def add_center_routes(app: FastAPI):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="There's no such room whose ac is open.",
             )
-        if len(res) == 0:
-            # FIXME: mock
-            res = [{
-                'room_id': '120',
-                'status': 1,
-                'wind_mode': 1,
-                'wind_speed': 1,
-                'current_temp': 20,
-                'target_temp': 25
-            }, {
-                'room_id': '120',
-                'status': 1,
-                'wind_mode': 1,
-                'wind_speed': 1,
-                'current_temp': 20,
-                'target_temp': 25
-            }]
+        # if len(res) == 0:
+        #     FIXME: mock
+            # res = [{
+            #     'room_id': '120',
+            #     'status': 1,
+            #     'wind_mode': 1,
+            #     'wind_speed': 1,
+            #     'current_temp': 20,
+            #     'target_temp': 25
+            # }, {
+            #     'room_id': '120',
+            #     'status': 1,
+            #     'wind_mode': 1,
+            #     'wind_speed': 1,
+            #     'current_temp': 20,
+            #     'target_temp': 25
+            # }]
         return res

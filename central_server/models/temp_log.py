@@ -43,20 +43,17 @@ class TempLog(BaseModel):
             Scale.Month: construct_months,
         }
         dates = SPAN_HANDLER[scale](date, span)
-        print(dates)
         report = {}
+        logs: List[TempLog] = await TempLog.get_all(room_id=room_id)
         for d in dates:
-            print(d)
-            report[int(d.timestamp())] = await TempLog.report_room(room_id, d, scale)
-            print(report)
+            report[int(d.timestamp())] = await TempLog.report_room(logs, d, scale)
         return report
 
     @staticmethod
-    async def report_room(room_id: str, date: datetime, scale: Scale):
+    async def report_room(logs: List, date: datetime, scale: Scale):
         DEFAULT_SPAN = {'start_time': 0, 'end_time': 0, 'start_temp': 0, 'end_temp': 0, 'fee': 0.0, 'wind': 0.0}
         ret = {'spans': [], 'sum_fee': 0.0, 'open_cnt': 0, 'close_cnt': 0}
         now_span = DEFAULT_SPAN
-        logs: List[TempLog] = await TempLog.get_all(room_id=room_id)
         scaled_logs: List[TempLog] = list(filter(lambda log: check_scale(log.timestamp, date, scale), logs))
         is_started = False
         for log in scaled_logs:
@@ -82,7 +79,7 @@ class TempLog(BaseModel):
                 now_span['fee'] += log.current_fee
                 now_span['wind'] += PRICE_TABLE[log.wind_speed]
                 ret['sum_fee'] += log.current_fee
-
+        # return {}
         return ret
 
 
